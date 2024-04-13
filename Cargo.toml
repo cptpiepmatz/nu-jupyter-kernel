@@ -1,0 +1,24 @@
+[package]
+name = "nu-jupyter-kernel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# nu
+nu-cli = { version = "0.92.2", path = "../nushell/crates/nu-cli" }
+nu-protocol = { version = "0.92.2", path = "../nushell/crates/nu-protocol" }
+
+# handle cli
+clap = { version = "4.5.4", features = ["derive"] }
+
+# error handling
+thiserror = "1.0.58"
+
+# async runtime
+tokio = { version = "1.37.0", features = ["full"] }
+
+# mainly for logging
+tracing = "0.1.40"
+
+# zeromq for communicating with jupyter
+zeromq = "0.3.5"
