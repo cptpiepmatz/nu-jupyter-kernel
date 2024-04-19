@@ -1,4 +1,6 @@
+use std::fs;
 use std::net::Ipv4Addr;
+use std::path::Path;
 use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer};
@@ -16,6 +18,14 @@ pub struct ConnectionFile {
     ip: Ipv4Addr,
     iopub_port: PortAddr,
     key: Key,
+}
+
+impl ConnectionFile {
+    pub fn from_path(path: impl AsRef<Path>) -> Result<ConnectionFile, ()> {
+        let contents = fs::read_to_string(path).unwrap();
+        let connection_file: ConnectionFile = serde_json::from_str(&contents).unwrap();
+        Ok(connection_file)
+    }
 }
 
 #[derive(Debug, Deserialize)]

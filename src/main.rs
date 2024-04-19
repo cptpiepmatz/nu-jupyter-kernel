@@ -2,6 +2,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
+use connection_file::ConnectionFile;
 use const_format::formatcp;
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{self, EngineState, Stack, StateWorkingSet};
@@ -57,6 +58,12 @@ async fn main() {
         }
         Command::Start {
             connection_file_path,
-        } => todo!(),
+        } => start_kernel(connection_file_path).await,
     }
+}
+
+async fn start_kernel(connection_file_path: impl AsRef<Path>) {
+    let connection_file = ConnectionFile::from_path(connection_file_path).unwrap();
+    dbg!(connection_file);
+    todo!();
 }
