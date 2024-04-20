@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::fs;
 use std::net::Ipv4Addr;
 use std::path::Path;
@@ -7,17 +8,17 @@ use serde::{Deserialize, Deserializer};
 
 #[derive(Debug, Deserialize)]
 pub struct ConnectionFile {
-    control_port: PortAddr,
-    shell_port: PortAddr,
+    pub control_port: PortAddr,
+    pub shell_port: PortAddr,
     #[serde(deserialize_with = "deserialize_zmq_transport")]
-    transport: zeromq::Transport,
-    signature_scheme: SignatureScheme,
-    stdin_port: PortAddr,
+    pub transport: zeromq::Transport,
+    pub signature_scheme: SignatureScheme,
+    pub stdin_port: PortAddr,
     #[serde(alias = "hb_port")]
-    heartbeat_port: PortAddr,
-    ip: Ipv4Addr,
-    iopub_port: PortAddr,
-    key: Key,
+    pub heartbeat_port: PortAddr,
+    pub ip: Ipv4Addr,
+    pub iopub_port: PortAddr,
+    pub key: Key,
 }
 
 impl ConnectionFile {
@@ -29,10 +30,16 @@ impl ConnectionFile {
 }
 
 #[derive(Debug, Deserialize)]
-struct PortAddr(pub u16);
+pub struct PortAddr(u16);
+
+impl Display for PortAddr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Debug, Deserialize)]
-struct Key(String);
+pub struct Key(String);
 
 #[derive(Debug)]
 pub struct SignatureScheme {

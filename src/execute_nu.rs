@@ -1,3 +1,7 @@
+use nu_protocol::debugger::WithoutDebug;
+use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
+use nu_protocol::PipelineData;
+
 static INPUT: &str = "{a: 3} | to json";
 
 fn get_engine_state() -> EngineState {

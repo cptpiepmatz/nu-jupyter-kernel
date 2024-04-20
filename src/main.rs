@@ -1,17 +1,21 @@
-use std::env;
-use std::path::{Path, PathBuf};
+// for now
+#![allow(dead_code)]
+#![allow(unused_variables)]
 
-use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
+use std::{ops::Deref, path::{Path, PathBuf}};
+use bytes::Bytes;
+use clap::{Parser, Subcommand};
 use connection_file::ConnectionFile;
 use const_format::formatcp;
-use nu_protocol::debugger::WithoutDebug;
-use nu_protocol::engine::{self, EngineState, Stack, StateWorkingSet};
-use nu_protocol::PipelineData;
+use parking_lot::Mutex;
 use register_kernel::{register_kernel, RegisterLocation};
+use serde::{Deserialize, Serialize};
+use tokio::select;
+use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, SocketRecv, SocketSend, ZmqMessage};
 
 mod connection_file;
-mod register_kernel;
 mod execute_nu;
+mod register_kernel;
 
 static_toml::static_toml! {
     const CARGO_TOML = include_toml!("Cargo.toml");
@@ -64,6 +68,140 @@ async fn main() {
 
 async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let connection_file = ConnectionFile::from_path(connection_file_path).unwrap();
-    dbg!(connection_file);
-    todo!();
+
+    let endpoint = |port| format!("{}://127.0.0.1:{}", connection_file.transport, port);
+
+    let shell_endpoint = endpoint(connection_file.shell_port);
+    let mut shell_socket = RouterSocket::new();
+    let shell_endpoint = shell_socket.bind(&shell_endpoint).await.unwrap();
+
+    let iopub_endpoint = endpoint(connection_file.iopub_port);
+    let mut iopub_socket = PubSocket::new();
+    let iopub_endpoint = iopub_socket.bind(&iopub_endpoint).await.unwrap();
+
+    let stdin_endpoint = endpoint(connection_file.stdin_port);
+    let mut stdin_socket = RouterSocket::new();
+    let stdin_endpoint = stdin_socket.bind(&stdin_endpoint).await.unwrap();
+
+    let control_endpoint = endpoint(connection_file.control_port);
+    let mut control_socket = RouterSocket::new();
+    let control_endpoint = control_socket.bind(&control_endpoint).await.unwrap();
+
+    let heartbeat_endpoint = endpoint(connection_file.heartbeat_port);
+    let mut heartbeat_socket = RepSocket::new();
+    let heartbeat_endpoint = heartbeat_socket.bind(&heartbeat_endpoint).await.unwrap();
+
+    let iopub_socket = Mutex::new(iopub_socket);
+
+    println!("start listening on sockets");
+
+    loop {
+        select! {
+            m = shell_socket.recv() => handle_shell(m.unwrap(), &mut shell_socket, &iopub_socket).await,
+            m = stdin_socket.recv() => handle_stdin(m.unwrap(), &mut stdin_socket, &iopub_socket).await,
+            m = control_socket.recv() => handle_control(m.unwrap(), &mut control_socket, &iopub_socket).await,
+            m = heartbeat_socket.recv() => handle_heartbeat(m.unwrap(), &mut heartbeat_socket).await,
+        }
+    }
 }
+
+async fn handle_shell(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mutex<PubSocket>) {
+    dbg!(("shell", &message));
+    let message = Message::try_from(message).unwrap();
+    dbg!(message);
+    todo!()
+}
+
+async fn handle_stdin(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mutex<PubSocket>) {
+    dbg!(("stdin", message));
+    todo!()
+}
+
+async fn handle_control(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mutex<PubSocket>) {
+    dbg!(("control", message));
+    todo!()
+}
+
+async fn handle_heartbeat(message: ZmqMessage, socket: &mut RepSocket) {
+    dbg!(("heartbeat", &message));
+    socket.send(message).await.unwrap();
+}
+
+#[derive(Debug)]
+struct Message {
+    zmq_identities: Vec<String>,
+    hmac_signature: String,
+    header: Header,
+    parent_header: Option<Header>,
+    metadata: Metadata,
+    content: Content,
+    buffers: Vec<Bytes>,
+}
+
+impl TryFrom<ZmqMessage> for Message {
+    type Error = (); // TODO: add real error type here
+
+    fn try_from(zmq_message: ZmqMessage) -> Result<Self, Self::Error> {
+        let mut iter = zmq_message.into_vec().into_iter();
+        
+        let mut zmq_identities = Vec::new();
+        while let Some(bytes) = iter.next() {
+            if bytes.deref() == b"<IDS|MSG>" {
+                break;
+            }
+
+            let id = String::from_utf8(bytes.into()).unwrap();
+            zmq_identities.push(id);
+        }
+
+        let hmac_signature = iter.next().unwrap();
+        let hmac_signature = String::from_utf8(hmac_signature.into()).unwrap();
+
+        let header = iter.next().unwrap();
+        let header = std::str::from_utf8(&header).unwrap();
+        let header = serde_json::from_str(header).unwrap();
+        
+        let parent_header = iter.next().unwrap();
+        let parent_header = std::str::from_utf8(&parent_header).unwrap();
+        let parent_header = match parent_header {
+            "{}" => None,
+            _ => serde_json::from_str(parent_header).unwrap()
+        };
+
+        let metadata = iter.next().unwrap();
+        let metadata = std::str::from_utf8(&metadata).unwrap();
+        let metadata = serde_json::from_str(metadata).unwrap();
+
+        let content = iter.next().unwrap();
+        let content = std::str::from_utf8(&content).unwrap();
+        let content = serde_json::from_str(content).unwrap();
+
+        let buffers = iter.collect();
+
+        Ok(Message {
+            zmq_identities,
+            hmac_signature,
+            header,
+            parent_header,
+            metadata,
+            content,
+            buffers,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Header {
+    msg_id: String,
+    session: String,
+    username: String,
+    date: String,
+    msg_type: String, // TODO: make this an enum
+    version: String
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Metadata(serde_json::Value);
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Content(serde_json::Value);

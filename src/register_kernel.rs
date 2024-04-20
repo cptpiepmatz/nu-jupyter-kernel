@@ -66,7 +66,7 @@ fn kernel_manifest() -> serde_json::Value {
         "argv": [this_exec, "start", "{connection_file}"],
         "display_name": "Nushell",
         "language": "nushell",
-        "interrupt_mode": "message",
+        "interrupt_mode": "signal", // TODO: make this "message" later
         "env": {},
         "metadata": {
             "nu_version": CARGO_TOML.dependencies.nu_engine.version,

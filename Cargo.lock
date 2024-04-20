@@ -1751,6 +1751,7 @@ dependencies = [
 name = "nu-jupyter-kernel"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "clap",
  "const_format",
  "dirs",
@@ -1759,6 +1760,7 @@ dependencies = [
  "nu-engine",
  "nu-parser",
  "nu-protocol",
+ "parking_lot",
  "serde",
  "serde_json",
  "static-toml",
