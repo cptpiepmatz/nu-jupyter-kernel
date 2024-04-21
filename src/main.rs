@@ -6,18 +6,17 @@ use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
-use hmac::Mac;
 use jupyter::connection_file::ConnectionFile;
-use jupyter::messages::shell::{
-    KernelInfoReply, ShellReplyOk,
-};
+use jupyter::messages::shell::{KernelInfoReply, ShellReplyOk};
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use parking_lot::Mutex;
 use tokio::select;
 use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, SocketRecv, SocketSend, ZmqMessage};
 
 use crate::jupyter::messages::shell::{ShellReply, ShellRequest};
-use crate::jupyter::messages::{Header, IncomingContent, Message, Metadata, OutgoingContent, DIGESTER, KERNEL_SESSION};
+use crate::jupyter::messages::{
+    Header, IncomingContent, Message, Metadata, OutgoingContent, DIGESTER, KERNEL_SESSION,
+};
 
 mod execute_nu;
 mod jupyter;
@@ -119,7 +118,6 @@ enum Channel {
     Control,
     Heartbeat,
 }
-
 
 async fn handle_shell(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mutex<PubSocket>) {
     dbg!(("shell", &message));

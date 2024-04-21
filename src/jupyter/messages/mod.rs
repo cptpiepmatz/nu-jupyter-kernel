@@ -1,4 +1,3 @@
-use std::net::Incoming;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::OnceLock;
@@ -6,7 +5,6 @@ use std::sync::OnceLock;
 use bytes::Bytes;
 use chrono::Utc;
 use hmac::{Hmac, Mac};
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::digest::InvalidLength;
@@ -14,9 +12,8 @@ use sha2::Sha256;
 use uuid::Uuid;
 use zeromq::ZmqMessage;
 
-use crate::{Channel, CARGO_TOML};
-
 use self::shell::ShellRequest;
+use crate::{Channel, CARGO_TOML};
 
 pub mod shell;
 
@@ -98,12 +95,12 @@ impl Metadata {
 
 #[derive(Debug, Deserialize)]
 pub enum IncomingContent {
-    Shell(shell::ShellRequest)
+    Shell(shell::ShellRequest),
 }
 
 #[derive(Debug, Serialize)]
 pub enum OutgoingContent {
-    Shell(shell::ShellReply)
+    Shell(shell::ShellReply),
 }
 
 #[derive(Debug)]
@@ -153,7 +150,9 @@ impl Message<IncomingContent> {
         let content = iter.next().unwrap();
         let content = std::str::from_utf8(&content).unwrap();
         let content = match source {
-            Channel::Shell => IncomingContent::Shell(ShellRequest::parse_variant(&header.msg_type, content).unwrap()),
+            Channel::Shell => IncomingContent::Shell(
+                ShellRequest::parse_variant(&header.msg_type, content).unwrap(),
+            ),
             Channel::Stdin => todo!(),
             Channel::Control => todo!(),
             Channel::Heartbeat => todo!(),
