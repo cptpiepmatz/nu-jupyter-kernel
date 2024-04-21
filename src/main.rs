@@ -9,14 +9,15 @@ use const_format::formatcp;
 use hmac::Mac;
 use jupyter::connection_file::ConnectionFile;
 use jupyter::messages::shell::{
-    KernelInfoReply, ShellReplyMessage, ShellReplyOk, ShellRequestMessage,
+    KernelInfoReply, ShellReplyOk,
 };
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use parking_lot::Mutex;
 use tokio::select;
 use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, SocketRecv, SocketSend, ZmqMessage};
 
-use crate::jupyter::messages::{Content, Header, Message, Metadata, DIGESTER, KERNEL_SESSION};
+use crate::jupyter::messages::shell::{ShellReply, ShellRequest};
+use crate::jupyter::messages::{Header, IncomingContent, Message, Metadata, OutgoingContent, DIGESTER, KERNEL_SESSION};
 
 mod execute_nu;
 mod jupyter;
@@ -111,12 +112,22 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum Channel {
+    Shell,
+    Stdin,
+    Control,
+    Heartbeat,
+}
+
+
 async fn handle_shell(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mutex<PubSocket>) {
     dbg!(("shell", &message));
-    let message = Message::try_from(message).unwrap();
+    let channel = Channel::Shell;
+    let message = Message::parse(message, channel).unwrap();
     dbg!(&message);
     match message.content {
-        Content::ShellRequest(ShellRequestMessage::KernelInfo) => {
+        jupyter::messages::IncomingContent::Shell(ShellRequest::KernelInfo) => {
             let session = KERNEL_SESSION.get();
             let reply = KernelInfoReply::get();
             let reply = Message {
@@ -124,18 +135,17 @@ async fn handle_shell(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mu
                 header: Header::new("kernel_info_reply"),
                 parent_header: Some(message.header),
                 metadata: Metadata::empty(),
-                content: Content::ShellReply(ShellReplyMessage::Ok(ShellReplyOk::KernelInfo(
+                content: OutgoingContent::Shell(ShellReply::Ok(ShellReplyOk::KernelInfo(
                     KernelInfoReply::get(),
                 ))),
                 buffers: vec![],
             };
             dbg!(&reply);
-            let reply = reply.try_into().unwrap();
+            let reply = reply.serialize(channel).unwrap();
             dbg!(&reply);
             socket.send(reply).await.unwrap();
         }
-        Content::ShellRequest(ShellRequestMessage::Execute(_)) => todo!(),
-        Content::ShellReply(_) => unreachable!("will receive only requests"),
+        IncomingContent::Shell(ShellRequest::Execute(_)) => todo!(),
     }
 }
 

@@ -2,18 +2,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::CARGO_TOML;
 
-pub enum ShellMessage {
-    Request(ShellRequestMessage),
-    Reply(ShellReplyMessage),
-}
-
 #[derive(Debug, Deserialize)]
-pub enum ShellRequestMessage {
+pub enum ShellRequest {
     Execute(ExecuteRequest),
     KernelInfo,
 }
 
-impl ShellRequestMessage {
+impl ShellRequest {
     pub fn parse_variant(variant: &str, body: &str) -> Result<Self, ()> {
         match variant {
             "execute_request" => return Ok(Self::Execute(serde_json::from_str(body).unwrap())),
@@ -26,7 +21,7 @@ impl ShellRequestMessage {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "snake_case", tag = "status")]
-pub enum ShellReplyMessage {
+pub enum ShellReply {
     Ok(ShellReplyOk),
     Error {
         #[serde(alias = "ename")]
