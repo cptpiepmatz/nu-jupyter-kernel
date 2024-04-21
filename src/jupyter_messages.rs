@@ -19,7 +19,7 @@ impl ShellRequestMessage {
             "execute_request" => return Ok(Self::Execute(serde_json::from_str(body).unwrap())),
             "kernel_info_request" if body == "{}" => return Ok(Self::KernelInfo),
             "kernel_info_request" => todo!("handle incorrect body here"),
-            _ => todo!(),
+            _ => todo!("unhandled request {variant}"),
         }
     }
 }

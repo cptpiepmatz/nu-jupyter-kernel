@@ -192,12 +192,12 @@ async fn handle_shell(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mu
 
 async fn handle_stdin(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mutex<PubSocket>) {
     dbg!(("stdin", message));
-    todo!()
+    todo!("handle stdin")
 }
 
 async fn handle_control(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mutex<PubSocket>) {
     dbg!(("control", message));
-    todo!()
+    todo!("handle control")
 }
 
 async fn handle_heartbeat(message: ZmqMessage, socket: &mut RepSocket) {
