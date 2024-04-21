@@ -2,30 +2,21 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::borrow::Cow;
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::OnceLock;
 
-use bytes::Bytes;
-use chrono::Utc;
 use clap::{Parser, Subcommand};
 use connection_file::ConnectionFile;
 use const_format::formatcp;
-use hmac::{Hmac, Mac};
-use jupyter_messages::{ShellMessage, ShellReplyMessage, ShellRequestMessage};
+use hmac::Mac;
+use jupyter_messages::{ShellReplyMessage, ShellRequestMessage};
 use parking_lot::Mutex;
 use register_kernel::{register_kernel, RegisterLocation};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use sha2::digest::InvalidLength;
-use sha2::Sha256;
 use tokio::select;
-use uuid::Uuid;
 use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, SocketRecv, SocketSend, ZmqMessage};
 
-use crate::jupyter_messages::{Content, Header, KernelInfoReply, Message, Metadata, ShellReplyOk, DIGESTER, KERNEL_SESSION};
+use crate::jupyter_messages::{
+    Content, Header, KernelInfoReply, Message, Metadata, ShellReplyOk, DIGESTER, KERNEL_SESSION,
+};
 
 mod connection_file;
 mod execute_nu;
@@ -143,10 +134,7 @@ async fn handle_shell(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mu
             dbg!(&reply);
             let reply = reply.try_into().unwrap();
             dbg!(&reply);
-            socket
-                .send(reply)
-                .await
-                .unwrap();
+            socket.send(reply).await.unwrap();
         }
         Content::ShellRequest(ShellRequestMessage::Execute(_)) => todo!(),
         Content::ShellReply(_) => unreachable!("will receive only requests"),

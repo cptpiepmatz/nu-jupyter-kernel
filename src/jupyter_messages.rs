@@ -1,11 +1,14 @@
-use std::{ops::Deref, sync::{atomic::{AtomicUsize, Ordering}, OnceLock}};
+use std::ops::Deref;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::OnceLock;
 
 use bytes::Bytes;
 use chrono::Utc;
 use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sha2::{digest::InvalidLength, Sha256};
+use sha2::digest::InvalidLength;
+use sha2::Sha256;
 use uuid::Uuid;
 use zeromq::ZmqMessage;
 
@@ -41,7 +44,7 @@ impl Digester {
     pub fn get(&self) -> &Hmac<Sha256> {
         match self.0.get() {
             None => panic!("hmac not initialized"),
-            Some(hmac) => hmac
+            Some(hmac) => hmac,
         }
     }
 }
@@ -122,11 +125,10 @@ impl TryFrom<Message> for ZmqMessage {
         let header = serde_json::to_string(&msg.header).unwrap();
         let parent_header = match msg.parent_header {
             Some(ref parent_header) => serde_json::to_string(parent_header).unwrap(),
-            None => "{}".to_owned()
+            None => "{}".to_owned(),
         };
         let metadata = serde_json::to_string(&msg.metadata).unwrap();
-        let Content::ShellReply(content) = msg.content
-        else {
+        let Content::ShellReply(content) = msg.content else {
             panic!("tried to serialize not a reply");
         };
         let content = serde_json::to_string(&content).unwrap();
@@ -203,7 +205,6 @@ pub enum Content {
     ShellRequest(ShellRequestMessage),
     ShellReply(ShellReplyMessage),
 }
-
 
 pub enum ShellMessage {
     Request(ShellRequestMessage),

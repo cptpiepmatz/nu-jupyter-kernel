@@ -93,8 +93,10 @@ where
     zeromq::Transport::from_str(&as_str).map_err(serde::de::Error::custom)
 }
 
-fn deserialize_key<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error> 
-where D: Deserializer<'de> {
+fn deserialize_key<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+where
+    D: Deserializer<'de>,
+{
     let as_str = String::deserialize(deserializer)?;
     Ok(as_str.into_bytes())
 }
