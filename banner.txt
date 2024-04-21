@@ -1,0 +1,4 @@
+     __  ,
+ .--()°'.' Welcome to Nushell,
+'|, . ,'   based on the nu language,
+ !_-(_\    where all data is structured!

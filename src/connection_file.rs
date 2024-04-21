@@ -18,7 +18,8 @@ pub struct ConnectionFile {
     pub heartbeat_port: PortAddr,
     pub ip: Ipv4Addr,
     pub iopub_port: PortAddr,
-    pub key: Key,
+    #[serde(deserialize_with = "deserialize_key")]
+    pub key: Vec<u8>,
 }
 
 impl ConnectionFile {
@@ -37,9 +38,6 @@ impl Display for PortAddr {
         write!(f, "{}", self.0)
     }
 }
-
-#[derive(Debug, Deserialize)]
-pub struct Key(String);
 
 #[derive(Debug)]
 pub struct SignatureScheme {
@@ -93,4 +91,10 @@ where
 {
     let as_str = String::deserialize(deserializer)?;
     zeromq::Transport::from_str(&as_str).map_err(serde::de::Error::custom)
+}
+
+fn deserialize_key<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error> 
+where D: Deserializer<'de> {
+    let as_str = String::deserialize(deserializer)?;
+    Ok(as_str.into_bytes())
 }
