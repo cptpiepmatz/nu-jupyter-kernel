@@ -2,23 +2,18 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::future::IntoFuture;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
 use jupyter::connection_file::ConnectionFile;
-use jupyter::messages::shell::{
-    ExecuteRequest, IsCompleteReply, IsCompleteRequest, KernelInfoReply, ShellReplyOk,
-};
+use jupyter::messages::shell::{ExecuteRequest, IsCompleteReply, KernelInfoReply, ShellReplyOk};
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use nu_protocol::engine::{EngineState, Stack};
 use tokio::sync::Mutex;
-use tokio::select;
 use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, SocketRecv, SocketSend, ZmqMessage};
 
-use crate::jupyter::messages::iopub::IopubBroacast;
 use crate::jupyter::messages::shell::{ShellReply, ShellRequest};
 use crate::jupyter::messages::{
     iopub, Header, IncomingContent, Message, Metadata, OutgoingContent, DIGESTER, KERNEL_SESSION,
@@ -116,13 +111,16 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
         loop {
             let msg = match socket.recv().await {
                 Err(_) => todo!("handle error receiving from a socket"),
-                Ok(msg) => msg
+                Ok(msg) => msg,
             };
             let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
-            shell_tx.send((Channel::Shell, msg, reply_tx)).await.unwrap();
+            shell_tx
+                .send((Channel::Shell, msg, reply_tx))
+                .await
+                .unwrap();
             let reply = match reply_rx.await {
                 Err(_) => continue,
-                Ok(reply) => reply
+                Ok(reply) => reply,
             };
             if socket.send(reply).await.is_err() {
                 todo!("handle error sending to socket");
@@ -146,7 +144,13 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
 
     while let Some((channel, zmq_message, reply_tx)) = ch_rx.recv().await {
         match channel {
-            Channel::Shell => tokio::spawn(handle_shell(zmq_message, reply_tx, iopub_socket.clone(), engine_state.clone(), stack.clone())),
+            Channel::Shell => tokio::spawn(handle_shell(
+                zmq_message,
+                reply_tx,
+                iopub_socket.clone(),
+                engine_state.clone(),
+                stack.clone(),
+            )),
             Channel::Iopub => unreachable!("no receiving on iopub"),
             Channel::Stdin => todo!(),
             Channel::Control => todo!(),
