@@ -15,6 +15,7 @@ use zeromq::ZmqMessage;
 use self::shell::ShellRequest;
 use crate::{Channel, CARGO_TOML};
 
+pub mod iopub;
 pub mod shell;
 
 pub static KERNEL_SESSION: KernelSession = KernelSession::new();
@@ -101,6 +102,7 @@ pub enum IncomingContent {
 #[derive(Debug, Serialize)]
 pub enum OutgoingContent {
     Shell(shell::ShellReply),
+    Iopub(iopub::IopubBroacast),
 }
 
 #[derive(Debug)]
@@ -153,9 +155,9 @@ impl Message<IncomingContent> {
             Channel::Shell => IncomingContent::Shell(
                 ShellRequest::parse_variant(&header.msg_type, content).unwrap(),
             ),
+            Channel::Iopub => unreachable!("only outgoing"),
             Channel::Stdin => todo!(),
             Channel::Control => todo!(),
-            Channel::Heartbeat => todo!(),
         };
 
         let buffers = iter.collect();
@@ -181,6 +183,7 @@ impl Message<OutgoingContent> {
         let metadata = serde_json::to_string(&self.metadata).unwrap();
         let content = match self.content {
             OutgoingContent::Shell(ref content) => serde_json::to_string(content).unwrap(),
+            OutgoingContent::Iopub(ref content) => serde_json::to_string(content).unwrap(),
         };
         let mut buffers = self.buffers;
 
@@ -208,4 +211,20 @@ impl Message<OutgoingContent> {
 
         Ok(bytes.try_into().expect("only errors on empty vec"))
     }
+}
+
+pub fn status(status: iopub::Status) -> Result<ZmqMessage, ()> {
+    let broadcast = iopub::IopubBroacast::Status(status);
+    let msg_type = broadcast.msg_type();
+    let content = OutgoingContent::Iopub(broadcast);
+    let status_message = Message {
+        zmq_identities: vec![],
+        header: Header::new(msg_type),
+        parent_header: None,
+        metadata: Metadata::empty(),
+        content,
+        buffers: vec![],
+    };
+    let zmq_message = status_message.serialize(Channel::Iopub).unwrap();
+    Ok(zmq_message)
 }

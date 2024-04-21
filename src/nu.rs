@@ -4,16 +4,18 @@ use nu_protocol::PipelineData;
 
 static INPUT: &str = "{a: 3} | to json";
 
-fn get_engine_state() -> EngineState {
+pub fn initial_engine_state() -> EngineState {
     // TODO: compare with nu_cli::get_engine_state for other contexts
     let engine_state = nu_cmd_lang::create_default_context();
     let engine_state = nu_command::add_shell_command_context(engine_state);
     engine_state
 }
 
+pub fn execute(code: &str, engine_state: &mut EngineState, stack: &mut Stack) {}
+
 fn execute_some_input() {
     let input = INPUT.as_bytes();
-    let mut engine_state = get_engine_state();
+    let mut engine_state = initial_engine_state();
     let mut working_set = StateWorkingSet::new(&engine_state);
     let block = nu_parser::parse(&mut working_set, None, input, false);
 

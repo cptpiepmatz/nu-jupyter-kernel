@@ -2,24 +2,30 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use std::future::IntoFuture;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
 use jupyter::connection_file::ConnectionFile;
-use jupyter::messages::shell::{KernelInfoReply, ShellReplyOk};
+use jupyter::messages::shell::{
+    ExecuteRequest, IsCompleteReply, IsCompleteRequest, KernelInfoReply, ShellReplyOk,
+};
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
-use parking_lot::Mutex;
+use nu_protocol::engine::{EngineState, Stack};
+use tokio::sync::Mutex;
 use tokio::select;
 use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, SocketRecv, SocketSend, ZmqMessage};
 
+use crate::jupyter::messages::iopub::IopubBroacast;
 use crate::jupyter::messages::shell::{ShellReply, ShellRequest};
 use crate::jupyter::messages::{
-    Header, IncomingContent, Message, Metadata, OutgoingContent, DIGESTER, KERNEL_SESSION,
+    iopub, Header, IncomingContent, Message, Metadata, OutgoingContent, DIGESTER, KERNEL_SESSION,
 };
 
-mod execute_nu;
 mod jupyter;
+mod nu;
 
 static_toml::static_toml! {
     const CARGO_TOML = include_toml!("Cargo.toml");
@@ -72,18 +78,20 @@ async fn main() {
 
 async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let connection_file = ConnectionFile::from_path(connection_file_path).unwrap();
+    let endpoint = |port| format!("{}://127.0.0.1:{}", connection_file.transport, port);
 
     DIGESTER.key_init(&connection_file.key).unwrap();
+    let iopub_endpoint = endpoint(connection_file.iopub_port);
+    let mut iopub_socket = PubSocket::new();
+    let iopub_endpoint = iopub_socket.bind(&iopub_endpoint).await.unwrap();
 
-    let endpoint = |port| format!("{}://127.0.0.1:{}", connection_file.transport, port);
+    // send out the starting message as soon as possible
+    let starting_message = jupyter::messages::status(iopub::Status::Starting).unwrap();
+    iopub_socket.send(starting_message).await.unwrap();
 
     let shell_endpoint = endpoint(connection_file.shell_port);
     let mut shell_socket = RouterSocket::new();
     let shell_endpoint = shell_socket.bind(&shell_endpoint).await.unwrap();
-
-    let iopub_endpoint = endpoint(connection_file.iopub_port);
-    let mut iopub_socket = PubSocket::new();
-    let iopub_endpoint = iopub_socket.bind(&iopub_endpoint).await.unwrap();
 
     let stdin_endpoint = endpoint(connection_file.stdin_port);
     let mut stdin_socket = RouterSocket::new();
@@ -97,36 +105,76 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let mut heartbeat_socket = RepSocket::new();
     let heartbeat_endpoint = heartbeat_socket.bind(&heartbeat_endpoint).await.unwrap();
 
-    let iopub_socket = Mutex::new(iopub_socket);
+    let engine_state = Arc::new(Mutex::new(nu::initial_engine_state()));
+    let stack = Arc::new(Mutex::new(Stack::new()));
 
-    println!("start listening on sockets");
+    let (ch_tx, mut ch_rx) = tokio::sync::mpsc::channel(10);
 
-    loop {
-        select! {
-            m = shell_socket.recv() => handle_shell(m.unwrap(), &mut shell_socket, &iopub_socket).await,
-            m = stdin_socket.recv() => handle_stdin(m.unwrap(), &mut stdin_socket, &iopub_socket).await,
-            m = control_socket.recv() => handle_control(m.unwrap(), &mut control_socket, &iopub_socket).await,
-            m = heartbeat_socket.recv() => handle_heartbeat(m.unwrap(), &mut heartbeat_socket).await,
+    let shell_tx = ch_tx.clone();
+    let shell_actor = tokio::spawn(async move {
+        let mut socket = shell_socket;
+        loop {
+            let msg = match socket.recv().await {
+                Err(_) => todo!("handle error receiving from a socket"),
+                Ok(msg) => msg
+            };
+            let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
+            shell_tx.send((Channel::Shell, msg, reply_tx)).await.unwrap();
+            let reply = match reply_rx.await {
+                Err(_) => continue,
+                Ok(reply) => reply
+            };
+            if socket.send(reply).await.is_err() {
+                todo!("handle error sending to socket");
+            }
         }
+    });
+
+    // TODO: add other actors for other channels
+
+    let heartbeat_handler = tokio::spawn(async move {
+        let mut socket = heartbeat_socket;
+        loop {
+            let heartbeat = socket.recv().await.unwrap();
+            socket.send(heartbeat).await.unwrap();
+        }
+    });
+
+    let idle_message = jupyter::messages::status(iopub::Status::Idle).unwrap();
+    iopub_socket.send(idle_message).await.unwrap();
+    let iopub_socket = Arc::new(Mutex::new(iopub_socket));
+
+    while let Some((channel, zmq_message, reply_tx)) = ch_rx.recv().await {
+        match channel {
+            Channel::Shell => tokio::spawn(handle_shell(zmq_message, reply_tx, iopub_socket.clone(), engine_state.clone(), stack.clone())),
+            Channel::Iopub => unreachable!("no receiving on iopub"),
+            Channel::Stdin => todo!(),
+            Channel::Control => todo!(),
+        };
     }
 }
 
+// no heartbeat nor iopub as they are handled differently
 #[derive(Debug, Clone, Copy)]
 enum Channel {
     Shell,
+    Iopub,
     Stdin,
     Control,
-    Heartbeat,
 }
 
-async fn handle_shell(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mutex<PubSocket>) {
-    dbg!(("shell", &message));
+async fn handle_shell(
+    message: ZmqMessage,
+    reply_tx: tokio::sync::oneshot::Sender<ZmqMessage>,
+    iopub: Arc<Mutex<PubSocket>>,
+    engine_state: Arc<Mutex<EngineState>>,
+    stack: Arc<Mutex<Stack>>,
+) {
     let channel = Channel::Shell;
     let message = Message::parse(message, channel).unwrap();
-    dbg!(&message);
+    let session = KERNEL_SESSION.get();
     match message.content {
         jupyter::messages::IncomingContent::Shell(ShellRequest::KernelInfo) => {
-            let session = KERNEL_SESSION.get();
             let reply = KernelInfoReply::get();
             let reply = Message {
                 zmq_identities: message.zmq_identities,
@@ -138,26 +186,52 @@ async fn handle_shell(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mu
                 ))),
                 buffers: vec![],
             };
-            dbg!(&reply);
             let reply = reply.serialize(channel).unwrap();
-            dbg!(&reply);
-            socket.send(reply).await.unwrap();
+            reply_tx.send(reply).unwrap();
         }
-        IncomingContent::Shell(ShellRequest::Execute(_)) => todo!(),
+        IncomingContent::Shell(ShellRequest::IsComplete(_)) => {
+            // TODO: not always return unknown
+            let reply = ShellReply::Ok(ShellReplyOk::IsComplete(IsCompleteReply::Unknown));
+            let reply = Message {
+                zmq_identities: message.zmq_identities,
+                header: Header::new(ShellReply::msg_type(&message.header.msg_type).unwrap()),
+                parent_header: Some(message.header),
+                metadata: Metadata::empty(),
+                content: OutgoingContent::Shell(reply),
+                buffers: vec![],
+            };
+            let reply = reply.serialize(channel).unwrap();
+            reply_tx.send(reply).unwrap();
+        }
+        IncomingContent::Shell(ShellRequest::Execute(ExecuteRequest {
+            code,
+            silent,
+            store_history,
+            user_expressions,
+            allow_stdin,
+            stop_on_error,
+        })) => {
+            let mut iopub = iopub.lock().await;
+
+            let busy = jupyter::messages::status(iopub::Status::Busy).unwrap();
+            iopub.send(busy).await.unwrap();
+
+            println!("we need to execute {code:?}");
+            // execute some code here
+            // responde to request here too
+
+            let idle = jupyter::messages::status(iopub::Status::Idle).unwrap();
+            iopub.send(idle).await.unwrap();
+        }
     }
 }
 
-async fn handle_stdin(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mutex<PubSocket>) {
+async fn handle_stdin(message: ZmqMessage, socket: &mut RouterSocket) {
     dbg!(("stdin", message));
     todo!("handle stdin")
 }
 
-async fn handle_control(message: ZmqMessage, socket: &mut RouterSocket, iopub: &Mutex<PubSocket>) {
+async fn handle_control(message: ZmqMessage, socket: &mut RouterSocket) {
     dbg!(("control", message));
     todo!("handle control")
-}
-
-async fn handle_heartbeat(message: ZmqMessage, socket: &mut RepSocket) {
-    dbg!(("heartbeat", &message));
-    socket.send(message).await.unwrap();
 }

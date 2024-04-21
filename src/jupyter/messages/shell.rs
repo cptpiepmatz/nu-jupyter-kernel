@@ -5,6 +5,7 @@ use crate::CARGO_TOML;
 #[derive(Debug, Deserialize)]
 pub enum ShellRequest {
     Execute(ExecuteRequest),
+    IsComplete(IsCompleteRequest),
     KernelInfo,
 }
 
@@ -12,6 +13,9 @@ impl ShellRequest {
     pub fn parse_variant(variant: &str, body: &str) -> Result<Self, ()> {
         match variant {
             "execute_request" => return Ok(Self::Execute(serde_json::from_str(body).unwrap())),
+            "is_complete_request" => {
+                return Ok(Self::IsComplete(serde_json::from_str(body).unwrap()))
+            }
             "kernel_info_request" if body == "{}" => return Ok(Self::KernelInfo),
             "kernel_info_request" => todo!("handle incorrect body here"),
             _ => todo!("unhandled request {variant}"),
@@ -32,11 +36,23 @@ pub enum ShellReply {
     },
 }
 
+impl ShellReply {
+    pub fn msg_type(request_type: &str) -> Result<&'static str, ()> {
+        Ok(match request_type {
+            "execute_request" => "execute_reply",
+            "is_complete_request" => "is_complete_reply",
+            "kernel_info_request" => "kernel_info_reply",
+            _ => todo!("handle unknown requests"),
+        })
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub enum ShellReplyOk {
     Execute(ExecuteReply),
     KernelInfo(KernelInfoReply),
+    IsComplete(IsCompleteReply),
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,8 +62,8 @@ pub struct ExecuteRequest {
     pub silent: bool,
     // TODO: check if this assertion can still be unhold or should be
     pub store_history: bool,
-    // TODO: replace this with some kind of nu type
-    pub user_expression: serde_json::Value,
+    // TODO: figure out what to do with this
+    pub user_expressions: serde_json::Value,
     pub allow_stdin: bool,
     pub stop_on_error: bool,
 }
@@ -55,7 +71,21 @@ pub struct ExecuteRequest {
 #[derive(Debug, Serialize)]
 pub struct ExecuteReply {
     pub execution_count: usize,
-    pub user_expression: serde_json::Value,
+    pub user_expressions: serde_json::Value,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct IsCompleteRequest {
+    pub code: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum IsCompleteReply {
+    Complete,
+    Incomplete { indent: String },
+    Invalid,
+    Unknown,
 }
 
 #[derive(Debug, Serialize)]
