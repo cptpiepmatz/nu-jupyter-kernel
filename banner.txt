@@ -1,4 +1,4 @@
-     __  ,
- .--()°'.' Welcome to Nushell,
-'|, . ,'   based on the nu language,
- !_-(_\    where all data is structured!
+[32m     __  ,[0m
+[32m .--()°'.' [0mYou're running [32mnu-jupyter-kernel[0m,
+[32m'|, . ,'   [0mbased on the [32mnu[0m language,
+[32m !_-(_\    [0mwhere all data is structured!
