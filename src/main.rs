@@ -5,23 +5,21 @@
 use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
-use connection_file::ConnectionFile;
 use const_format::formatcp;
 use hmac::Mac;
-use jupyter_messages::{ShellReplyMessage, ShellRequestMessage};
+use jupyter::connection_file::ConnectionFile;
+use jupyter::messages::shell::{
+    KernelInfoReply, ShellReplyMessage, ShellReplyOk, ShellRequestMessage,
+};
+use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use parking_lot::Mutex;
-use register_kernel::{register_kernel, RegisterLocation};
 use tokio::select;
 use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, SocketRecv, SocketSend, ZmqMessage};
 
-use crate::jupyter_messages::{
-    Content, Header, KernelInfoReply, Message, Metadata, ShellReplyOk, DIGESTER, KERNEL_SESSION,
-};
+use crate::jupyter::messages::{Content, Header, Message, Metadata, DIGESTER, KERNEL_SESSION};
 
-mod connection_file;
 mod execute_nu;
-mod jupyter_messages;
-mod register_kernel;
+mod jupyter;
 
 static_toml::static_toml! {
     const CARGO_TOML = include_toml!("Cargo.toml");
