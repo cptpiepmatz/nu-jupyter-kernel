@@ -1617,6 +1617,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "nu-cmd-extra"
+version = "0.92.2"
+dependencies = [
+ "fancy-regex",
+ "heck",
+ "itertools 0.12.1",
+ "nu-ansi-term",
+ "nu-cmd-base",
+ "nu-engine",
+ "nu-json",
+ "nu-parser",
+ "nu-pretty-hex",
+ "nu-protocol",
+ "nu-utils",
+ "num-traits",
+ "rust-embed",
+ "serde",
+ "serde_urlencoded",
+ "v_htmlescape",
+]
+
+[[package]]
 name = "nu-cmd-lang"
 version = "0.92.2"
 dependencies = [
@@ -1768,6 +1790,8 @@ dependencies = [
  "dirs",
  "hex",
  "hmac",
+ "mime",
+ "nu-cmd-extra",
  "nu-cmd-lang",
  "nu-command",
  "nu-engine",
@@ -2526,6 +2550,40 @@ name = "roxmltree"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3cd14fd5e3b777a7422cca79358c57a8f6e3a703d9ac187448d0daf220c2407f"
+
+[[package]]
+name = "rust-embed"
+version = "8.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb78f46d0066053d16d4ca7b898e9343bc3530f71c61d5ad84cd404ada068745"
+dependencies = [
+ "rust-embed-impl",
+ "rust-embed-utils",
+ "walkdir",
+]
+
+[[package]]
+name = "rust-embed-impl"
+version = "8.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b91ac2a3c6c0520a3fb3dd89321177c3c692937c4eb21893378219da10c44fc8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rust-embed-utils",
+ "syn 2.0.58",
+ "walkdir",
+]
+
+[[package]]
+name = "rust-embed-utils"
+version = "8.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86f69089032567ffff4eada41c573fc43ff466c7db7c5688b2e7969584345581"
+dependencies = [
+ "sha2",
+ "walkdir",
+]
 
 [[package]]
 name = "rust_decimal"

@@ -7,11 +7,13 @@ edition = "2021"
 protocol_version = "5.4"
 
 [dependencies]
-nu-engine = { version = "0.92.2", path = "../nushell/crates/nu-engine" }
-nu-protocol = { version = "0.92.2", path = "../nushell/crates/nu-protocol" }
-nu-parser = { version = "0.92.2", path = "../nushell/crates/nu-parser" }
+nu-cmd-extra = { version = "0.92.2", path = "../nushell/crates/nu-cmd-extra" }
 nu-cmd-lang = { version = "0.92.2", path = "../nushell/crates/nu-cmd-lang" }
 nu-command = { version = "0.92.2", path = "../nushell/crates/nu-command" }
+nu-engine = { version = "0.92.2", path = "../nushell/crates/nu-engine" }
+nu-parser = { version = "0.92.2", path = "../nushell/crates/nu-parser" }
+nu-protocol = { version = "0.92.2", path = "../nushell/crates/nu-protocol" }
+
 
 clap = { version = "4.5.4", features = ["derive"] }
 thiserror = "1.0.58"
@@ -30,3 +32,4 @@ const_format = "0.2.32"
 hmac = "0.12.1"
 sha2 = "0.10.8"
 hex = "0.4.3"
+mime = "0.3.17"

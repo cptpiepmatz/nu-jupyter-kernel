@@ -54,7 +54,7 @@ impl Digester {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Header {
     pub msg_id: String,
     pub session: String,

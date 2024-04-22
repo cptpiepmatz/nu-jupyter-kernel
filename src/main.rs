@@ -2,18 +2,30 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
 use jupyter::connection_file::ConnectionFile;
-use jupyter::messages::shell::{ExecuteRequest, IsCompleteReply, KernelInfoReply, ShellReplyOk};
+use jupyter::messages::iopub::ExecuteResult;
+use jupyter::messages::shell::{
+    ExecuteReply, ExecuteRequest, IsCompleteReply, KernelInfoReply, ShellReplyOk,
+};
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
-use nu_protocol::engine::{EngineState, Stack};
+use mime::Mime;
+use nu::{PipelineRender, ToDeclIds};
+use nu_command::{ToCsv, ToJson, ToMd, ToText};
+use nu_protocol::ast::Call;
+use nu_protocol::engine::{Command as NuCommand, EngineState, Stack};
+use nu_protocol::{PipelineData, Span, Value};
+use serde_json::json;
 use tokio::sync::Mutex;
 use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, SocketRecv, SocketSend, ZmqMessage};
 
+use crate::jupyter::messages::iopub::{DisplayData, IopubBroacast};
 use crate::jupyter::messages::shell::{ShellReply, ShellRequest};
 use crate::jupyter::messages::{
     iopub, Header, IncomingContent, Message, Metadata, OutgoingContent, DIGESTER, KERNEL_SESSION,
@@ -25,6 +37,8 @@ mod nu;
 static_toml::static_toml! {
     const CARGO_TOML = include_toml!("Cargo.toml");
 }
+
+static EXECUTION_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
 #[derive(Debug, Parser)]
 #[command(version, long_version = formatcp!(
@@ -100,7 +114,9 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let mut heartbeat_socket = RepSocket::new();
     let heartbeat_endpoint = heartbeat_socket.bind(&heartbeat_endpoint).await.unwrap();
 
-    let engine_state = Arc::new(Mutex::new(nu::initial_engine_state()));
+    let engine_state = nu::initial_engine_state();
+    let to_decl_ids = ToDeclIds::find(&engine_state).unwrap();
+    let engine_state = Arc::new(Mutex::new(engine_state));
     let stack = Arc::new(Mutex::new(Stack::new()));
 
     let (ch_tx, mut ch_rx) = tokio::sync::mpsc::channel(10);
@@ -150,6 +166,7 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
                 iopub_socket.clone(),
                 engine_state.clone(),
                 stack.clone(),
+                to_decl_ids,
             )),
             Channel::Iopub => unreachable!("no receiving on iopub"),
             Channel::Stdin => todo!(),
@@ -173,6 +190,7 @@ async fn handle_shell(
     iopub: Arc<Mutex<PubSocket>>,
     engine_state: Arc<Mutex<EngineState>>,
     stack: Arc<Mutex<Stack>>,
+    to_decl_ids: ToDeclIds,
 ) {
     let channel = Channel::Shell;
     let message = Message::parse(message, channel).unwrap();
@@ -215,13 +233,69 @@ async fn handle_shell(
             allow_stdin,
             stop_on_error,
         })) => {
+            let mut engine_state = engine_state.lock().await;
+            let mut stack = stack.lock().await;
             let mut iopub = iopub.lock().await;
 
             let busy = jupyter::messages::status(iopub::Status::Busy).unwrap();
             iopub.send(busy).await.unwrap();
 
-            println!("we need to execute {code:?}");
-            // execute some code here
+            match nu::execute(&code, &mut engine_state, &mut stack) {
+                Err(_) => todo!(),
+                Ok(pipeline_data) => {
+                    let execution_count = EXECUTION_COUNTER.fetch_add(1, Ordering::SeqCst);
+                    let render = PipelineRender::render(
+                        pipeline_data,
+                        &engine_state,
+                        &mut stack,
+                        to_decl_ids,
+                    );
+                    let execute_result = ExecuteResult {
+                        execution_count, // TODO: do real number here
+                        data: render
+                            .data
+                            .into_iter()
+                            .map(|(k, v)| (k.to_string(), v))
+                            .collect(),
+                        metadata: render
+                            .metadata
+                            .into_iter()
+                            .map(|(k, v)| (k.to_string(), v))
+                            .collect(),
+                    };
+                    let broadcast = IopubBroacast::ExecuteResult(execute_result);
+                    let broadcast = Message {
+                        zmq_identities: message.zmq_identities.clone(),
+                        header: Header::new(broadcast.msg_type()),
+                        parent_header: Some(message.header.clone()),
+                        metadata: Metadata::empty(),
+                        content: OutgoingContent::Iopub(broadcast),
+                        buffers: vec![],
+                    };
+                    iopub
+                        .send(broadcast.serialize(Channel::Iopub).unwrap())
+                        .await
+                        .unwrap();
+
+                    let reply = ExecuteReply {
+                        execution_count,
+                        user_expressions: json!({}),
+                    };
+                    let reply = ShellReply::Ok(ShellReplyOk::Execute(reply));
+                    let msg_type = ShellReply::msg_type(&message.header.msg_type).unwrap();
+                    let reply = Message {
+                        zmq_identities: message.zmq_identities,
+                        header: Header::new(msg_type),
+                        parent_header: Some(message.header),
+                        metadata: Metadata::empty(),
+                        content: OutgoingContent::Shell(reply),
+                        buffers: vec![],
+                    };
+                    reply_tx
+                        .send(reply.serialize(Channel::Shell).unwrap())
+                        .unwrap();
+                }
+            }
             // responde to request here too
 
             let idle = jupyter::messages::status(iopub::Status::Idle).unwrap();

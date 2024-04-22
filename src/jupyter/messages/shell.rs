@@ -37,7 +37,7 @@ pub enum ShellReply {
 }
 
 impl ShellReply {
-    pub fn msg_type(request_type: &str) -> Result<&'static str, ()> {
+    pub fn msg_type(request_type: &'_ str) -> Result<&'static str, ()> {
         Ok(match request_type {
             "execute_request" => "execute_reply",
             "is_complete_request" => "is_complete_reply",
