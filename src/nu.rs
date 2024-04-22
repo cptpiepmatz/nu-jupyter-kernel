@@ -93,9 +93,11 @@ impl PipelineRender {
                 arguments: vec![],
                 parser_info: HashMap::new(),
             };
-            let formatted = to_cmd
-                .run(&engine_state, stack, &call, pipeline_data)
-                .unwrap();
+            let formatted = match to_cmd
+                .run(&engine_state, stack, &call, pipeline_data) {
+                    Err(_) => return false,
+                    Ok(formatted) => formatted,
+                };
             let formatted = formatted
                 .into_value(Span::unknown())
                 .into_string()

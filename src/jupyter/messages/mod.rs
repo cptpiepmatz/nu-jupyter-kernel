@@ -72,7 +72,7 @@ impl Header {
         Header {
             msg_id: format!("{session}:{msg_counter}"),
             session: session.to_owned(),
-            username: "nu".to_owned(),
+            username: "nu_kernel".to_owned(),
             date: Utc::now().to_rfc3339(),
             msg_type: msg_type.into(),
             version: CARGO_TOML
@@ -107,7 +107,7 @@ pub enum OutgoingContent {
 
 #[derive(Debug)]
 pub struct Message<C> {
-    pub zmq_identities: Vec<String>,
+    pub zmq_identities: Vec<Bytes>,
     pub header: Header,
     pub parent_header: Option<Header>,
     pub metadata: Metadata,
@@ -126,8 +126,7 @@ impl Message<IncomingContent> {
                 break;
             }
 
-            let id = String::from_utf8(bytes.into()).unwrap();
-            zmq_identities.push(id);
+            zmq_identities.push(bytes);
         }
 
         let hmac_signature = iter.next().unwrap();

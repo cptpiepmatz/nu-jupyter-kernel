@@ -82,7 +82,7 @@ async fn main() {
 
 async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let connection_file = ConnectionFile::from_path(connection_file_path).unwrap();
-    let endpoint = |port| format!("{}://127.0.0.1:{}", connection_file.transport, port);
+    let endpoint = |port| format!("{}://{}:{}", connection_file.transport, connection_file.ip, port);
 
     DIGESTER.key_init(&connection_file.key).unwrap();
     let iopub_endpoint = endpoint(connection_file.iopub_port);
@@ -92,6 +92,7 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     // send out the starting message as soon as possible
     let starting_message = jupyter::messages::status(iopub::Status::Starting).unwrap();
     iopub_socket.send(starting_message).await.unwrap();
+    let iopub_socket = Arc::new(Mutex::new(iopub_socket));
 
     let shell_endpoint = endpoint(connection_file.shell_port);
     let mut shell_socket = RouterSocket::new();
@@ -149,10 +150,6 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
         }
     });
 
-    let idle_message = jupyter::messages::status(iopub::Status::Idle).unwrap();
-    iopub_socket.send(idle_message).await.unwrap();
-    let iopub_socket = Arc::new(Mutex::new(iopub_socket));
-
     while let Some((channel, zmq_message, reply_tx)) = ch_rx.recv().await {
         match channel {
             Channel::Shell => tokio::spawn(handle_shell(
@@ -190,6 +187,8 @@ async fn handle_shell(
     let channel = Channel::Shell;
     let message = Message::parse(message, channel).unwrap();
     let session = KERNEL_SESSION.get();
+    let mut iopub = iopub.lock().await;
+
     match message.content {
         jupyter::messages::IncomingContent::Shell(ShellRequest::KernelInfo) => {
             let reply = KernelInfoReply::get();
@@ -205,6 +204,9 @@ async fn handle_shell(
             };
             let reply = reply.serialize(channel).unwrap();
             reply_tx.send(reply).unwrap();
+
+            let idle_message = jupyter::messages::status(iopub::Status::Idle).unwrap();
+            iopub.send(idle_message).await.unwrap();
         }
         IncomingContent::Shell(ShellRequest::IsComplete(_)) => {
             // TODO: not always return unknown
@@ -230,7 +232,6 @@ async fn handle_shell(
         })) => {
             let mut engine_state = engine_state.lock().await;
             let mut stack = stack.lock().await;
-            let mut iopub = iopub.lock().await;
 
             let busy = jupyter::messages::status(iopub::Status::Busy).unwrap();
             iopub.send(busy).await.unwrap();
@@ -291,7 +292,6 @@ async fn handle_shell(
                         .unwrap();
                 }
             }
-            // responde to request here too
 
             let idle = jupyter::messages::status(iopub::Status::Idle).unwrap();
             iopub.send(idle).await.unwrap();

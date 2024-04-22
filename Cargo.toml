@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [package.metadata.jupyter]
-protocol_version = "5.4"
+protocol_version = "5.3"
 
 [dependencies]
 nu-cmd-extra = { version = "0.92.2", path = "../nushell/crates/nu-cmd-extra" }
