@@ -2,7 +2,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -15,17 +14,13 @@ use jupyter::messages::shell::{
     ExecuteReply, ExecuteRequest, IsCompleteReply, KernelInfoReply, ShellReplyOk,
 };
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
-use mime::Mime;
 use nu::{PipelineRender, ToDeclIds};
-use nu_command::{ToCsv, ToJson, ToMd, ToText};
-use nu_protocol::ast::Call;
-use nu_protocol::engine::{Command as NuCommand, EngineState, Stack};
-use nu_protocol::{PipelineData, Span, Value};
+use nu_protocol::engine::{EngineState, Stack};
 use serde_json::json;
 use tokio::sync::Mutex;
 use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, SocketRecv, SocketSend, ZmqMessage};
 
-use crate::jupyter::messages::iopub::{DisplayData, IopubBroacast};
+use crate::jupyter::messages::iopub::IopubBroacast;
 use crate::jupyter::messages::shell::{ShellReply, ShellRequest};
 use crate::jupyter::messages::{
     iopub, Header, IncomingContent, Message, Metadata, OutgoingContent, DIGESTER, KERNEL_SESSION,

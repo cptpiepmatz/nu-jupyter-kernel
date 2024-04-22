@@ -113,7 +113,7 @@ impl PipelineRender {
         to_decl_ids: ToDeclIds,
     ) -> PipelineRender {
         let mut data = HashMap::new();
-        let mut metadata = HashMap::new();
+        let metadata = HashMap::new();
         // TODO: use real span here
         let value = pipeline_data.into_value(Span::unknown());
         let ty = value.get_type();
