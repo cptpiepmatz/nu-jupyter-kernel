@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [package.metadata.jupyter]
-protocol_version = "5.3"
+protocol_version = "5.4"
 
 [dependencies]
 nu-cmd-extra = { version = "0.92.2", path = "../nushell/crates/nu-cmd-extra" }
@@ -14,15 +14,10 @@ nu-engine = { version = "0.92.2", path = "../nushell/crates/nu-engine" }
 nu-parser = { version = "0.92.2", path = "../nushell/crates/nu-parser" }
 nu-protocol = { version = "0.92.2", path = "../nushell/crates/nu-protocol" }
 
-
 clap = { version = "4.5.4", features = ["derive"] }
 thiserror = "1.0.58"
-tokio = { version = "1.37.0", features = ["full"] }
-parking_lot = "0.12.1"
-tracing = "0.1.40"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.115"
-zeromq = "0.3.5"
 bytes = "1.6.0"
 uuid = "1.8.0"
 chrono = "0.4.38"
@@ -33,3 +28,5 @@ hmac = "0.12.1"
 sha2 = "0.10.8"
 hex = "0.4.3"
 mime = "0.3.17"
+zmq = "0.10.0"
+derive_more = "0.99.17"

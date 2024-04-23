@@ -1,6 +1,7 @@
 use std::ops::Deref;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::OnceLock;
+use derive_more::From;
 
 use bytes::Bytes;
 use chrono::Utc;
@@ -10,12 +11,14 @@ use serde_json::json;
 use sha2::digest::InvalidLength;
 use sha2::Sha256;
 use uuid::Uuid;
-use zeromq::ZmqMessage;
+use zmq::{Socket, DONTWAIT, SNDMORE};
 
-use self::shell::ShellRequest;
+use self::iopub::IopubBroacast;
+use self::shell::{ShellReply, ShellRequest};
 use crate::{Channel, CARGO_TOML};
 
 pub mod iopub;
+pub mod multipart;
 pub mod shell;
 
 pub static KERNEL_SESSION: KernelSession = KernelSession::new();
@@ -99,7 +102,7 @@ pub enum IncomingContent {
     Shell(shell::ShellRequest),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, From)]
 pub enum OutgoingContent {
     Shell(shell::ShellReply),
     Iopub(iopub::IopubBroacast),
@@ -115,51 +118,52 @@ pub struct Message<C> {
     pub buffers: Vec<Bytes>,
 }
 
+static ZMQ_WAIT: i32 = 0;
+
 impl Message<IncomingContent> {
     // TODO: add a real error type here
-    pub fn parse(zmq_message: ZmqMessage, source: Channel) -> Result<Self, ()> {
-        let mut iter = zmq_message.into_vec().into_iter();
-
+    fn recv(socket: &Socket, source: Channel) -> Result<Self, ()> {
         let mut zmq_identities = Vec::new();
-        while let Some(bytes) = iter.next() {
-            if bytes.deref() == b"<IDS|MSG>" {
+        loop {
+            let bytes = socket.recv_bytes(ZMQ_WAIT).unwrap();
+            if &bytes == b"<IDS|MSG>" {
                 break;
             }
-
-            zmq_identities.push(bytes);
+            zmq_identities.push(Bytes::from(bytes));
         }
 
-        let hmac_signature = iter.next().unwrap();
-        let hmac_signature = String::from_utf8(hmac_signature.into()).unwrap();
-        // TODO: verify signature
+        let signature = socket.recv_string(ZMQ_WAIT).unwrap().unwrap();
 
-        let header = iter.next().unwrap();
-        let header = std::str::from_utf8(&header).unwrap();
-        let header: Header = serde_json::from_str(header).unwrap();
+        let header = socket.recv_string(ZMQ_WAIT).unwrap().unwrap();
+        let header: Header = serde_json::from_str(&header).unwrap();
 
-        let parent_header = iter.next().unwrap();
-        let parent_header = std::str::from_utf8(&parent_header).unwrap();
-        let parent_header: Option<Header> = match parent_header {
+        let parent_header = socket.recv_string(ZMQ_WAIT).unwrap().unwrap();
+        let parent_header: Option<Header> = match parent_header.as_str() {
             "{}" => None,
-            _ => serde_json::from_str(parent_header).unwrap(),
+            ph => serde_json::from_str(ph).unwrap(),
         };
 
-        let metadata = iter.next().unwrap();
-        let metadata = std::str::from_utf8(&metadata).unwrap();
-        let metadata: Metadata = serde_json::from_str(metadata).unwrap();
+        let metadata = socket.recv_string(ZMQ_WAIT).unwrap().unwrap();
+        let metadata: Metadata = serde_json::from_str(&metadata).unwrap();
 
-        let content = iter.next().unwrap();
-        let content = std::str::from_utf8(&content).unwrap();
+        let content = socket.recv_string(ZMQ_WAIT).unwrap().unwrap();
         let content = match source {
-            Channel::Shell => IncomingContent::Shell(
-                ShellRequest::parse_variant(&header.msg_type, content).unwrap(),
-            ),
+            Channel::Shell => {
+                IncomingContent::Shell(ShellRequest::parse_variant(&header.msg_type, &content)?)
+            }
             Channel::Iopub => unreachable!("only outgoing"),
             Channel::Stdin => todo!(),
             Channel::Control => todo!(),
         };
 
-        let buffers = iter.collect();
+        let buffers: Vec<Bytes> = match socket.recv_multipart(DONTWAIT) {
+            Ok(buffers) => buffers
+                .into_iter()
+                .map(|bytes| Bytes::from(bytes))
+                .collect(),
+            Err(zmq::Error::EAGAIN) => vec![],
+            Err(_) => todo!(),
+        };
 
         Ok(Message {
             zmq_identities,
@@ -172,58 +176,27 @@ impl Message<IncomingContent> {
     }
 }
 
-impl Message<OutgoingContent> {
-    pub fn serialize(self, channel: Channel) -> Result<ZmqMessage, ()> {
-        let header = serde_json::to_string(&self.header).unwrap();
-        let parent_header = match self.parent_header {
-            Some(ref parent_header) => serde_json::to_string(parent_header).unwrap(),
-            None => "{}".to_owned(),
+impl Message<ShellRequest> {
+    pub fn recv(socket: &Socket) -> Result<Self, ()> {
+        let msg = Message::<IncomingContent>::recv(socket, Channel::Shell)?;
+        let Message {
+            zmq_identities,
+            header,
+            parent_header,
+            metadata,
+            content,
+            buffers,
+        } = msg;
+        let content = match content {
+            IncomingContent::Shell(content) => content,
         };
-        let metadata = serde_json::to_string(&self.metadata).unwrap();
-        let content = match self.content {
-            OutgoingContent::Shell(ref content) => serde_json::to_string(content).unwrap(),
-            OutgoingContent::Iopub(ref content) => serde_json::to_string(content).unwrap(),
-        };
-        let mut buffers = self.buffers;
-
-        let mut digester = DIGESTER.get().clone();
-        digester.update(header.as_bytes());
-        digester.update(parent_header.as_bytes());
-        digester.update(metadata.as_bytes());
-        digester.update(content.as_bytes());
-        let signature = digester.finalize().into_bytes();
-        let signature = hex::encode(signature);
-
-        let mut bytes: Vec<Bytes> = Vec::new();
-
-        for zmq_ids in self.zmq_identities {
-            bytes.push(zmq_ids.into())
-        }
-
-        bytes.push(Bytes::from_static(b"<IDS|MSG>"));
-        bytes.push(signature.into());
-        bytes.push(header.into());
-        bytes.push(parent_header.into());
-        bytes.push(metadata.into());
-        bytes.push(content.into());
-        bytes.append(&mut buffers);
-
-        Ok(bytes.try_into().expect("only errors on empty vec"))
+        Ok(Message {
+            zmq_identities,
+            header,
+            parent_header,
+            metadata,
+            content,
+            buffers,
+        })
     }
-}
-
-pub fn status(status: iopub::Status) -> Result<ZmqMessage, ()> {
-    let broadcast = iopub::IopubBroacast::Status(status);
-    let msg_type = broadcast.msg_type();
-    let content = OutgoingContent::Iopub(broadcast);
-    let status_message = Message {
-        zmq_identities: vec![],
-        header: Header::new(msg_type),
-        parent_header: None,
-        metadata: Metadata::empty(),
-        content,
-        buffers: vec![],
-    };
-    let zmq_message = status_message.serialize(Channel::Iopub).unwrap();
-    Ok(zmq_message)
 }

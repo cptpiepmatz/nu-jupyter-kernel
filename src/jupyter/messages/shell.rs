@@ -18,7 +18,10 @@ impl ShellRequest {
             }
             "kernel_info_request" if body == "{}" => return Ok(Self::KernelInfo),
             "kernel_info_request" => todo!("handle incorrect body here"),
-            _ => todo!("unhandled request {variant}"),
+            _ => {
+                eprintln!("unknown request {variant}");
+                return Err(());
+            }
         }
     }
 }
