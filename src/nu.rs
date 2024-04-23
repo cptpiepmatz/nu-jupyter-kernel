@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 use std::env;
+use std::fmt::Display;
 
+use miette::Diagnostic;
 use mime::Mime;
 use nu_command::{ToCsv, ToJson, ToMd, ToText};
 use nu_protocol::ast::Call;
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{Command, EngineState, Stack, StateWorkingSet};
-use nu_protocol::{PipelineData, Span, Value};
-
-static INPUT: &str = "{a: 3} | to json";
+use nu_protocol::{ParseError, PipelineData, ShellError, Span, Value};
+use thiserror::Error;
 
 pub fn initial_engine_state() -> EngineState {
     // TODO: compare with nu_cli::get_engine_state for other contexts
@@ -174,23 +175,40 @@ impl PipelineRender {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum ExecuteError {
+    #[error(transparent)]
+    Parse(#[from] ParseError),
+
+    #[error(transparent)]
+    Shell(#[from] ShellError),
+}
+
+impl Diagnostic for ExecuteError {
+    fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        match self {
+            Self::Parse(e) => e.code(),
+            Self::Shell(e) => e.code(),
+        }
+    }
+}
+
 pub fn execute(
     code: &str,
     engine_state: &mut EngineState,
     stack: &mut Stack,
-) -> Result<PipelineData, ()> {
+) -> Result<PipelineData, ExecuteError> {
     let code = code.as_bytes();
     let mut working_set = StateWorkingSet::new(engine_state);
     // TODO: use for fname the history counter
     let block = nu_parser::parse(&mut working_set, None, code, false);
 
-    if let Some(error) = working_set.parse_errors.first() {
-        todo!("handle parsing errors");
+    if let Some(error) = working_set.parse_errors.into_iter().next() {
+        return Err(error.into());
     }
 
-    engine_state.merge_delta(working_set.delta).unwrap();
+    engine_state.merge_delta(working_set.delta)?;
     let res =
-        nu_engine::eval_block::<WithoutDebug>(engine_state, stack, &block, PipelineData::Empty)
-            .unwrap(); // TODO: handle evaluation errors somehow
+        nu_engine::eval_block::<WithoutDebug>(engine_state, stack, &block, PipelineData::Empty)?;
     Ok(res)
 }

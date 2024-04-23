@@ -33,9 +33,9 @@ impl ShellRequest {
 pub enum ShellReply {
     Ok(ShellReplyOk),
     Error {
-        #[serde(alias = "ename")]
+        #[serde(rename = "ename")]
         name: String,
-        #[serde(alias = "evalue")]
+        #[serde(rename = "evalue")]
         value: String,
         traceback: Vec<String>,
     },

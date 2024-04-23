@@ -14,7 +14,7 @@ pub enum IopubBroacast {
     UpdateDisplayData,
     ExecuteInput,
     ExecuteResult(ExecuteResult),
-    Error,
+    Error(Error),
     Status(Status),
     ClearOutput,
     DebugEvent,
@@ -28,7 +28,7 @@ impl IopubBroacast {
             IopubBroacast::UpdateDisplayData => "update_display_data",
             IopubBroacast::ExecuteInput => "execute_input",
             IopubBroacast::ExecuteResult(_) => "execute_result",
-            IopubBroacast::Error => "error",
+            IopubBroacast::Error(_) => "error",
             IopubBroacast::Status(_) => "status",
             IopubBroacast::ClearOutput => "clear_output",
             IopubBroacast::DebugEvent => "debug_event",
@@ -48,6 +48,17 @@ pub struct ExecuteResult {
     pub execution_count: usize,
     pub data: HashMap<String, String>,
     pub metadata: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Error {
+    #[serde(rename = "ename")]
+    pub name: String,
+
+    #[serde(rename = "evalue")]
+    pub value: String,
+
+    pub traceback: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Clone, Copy)]

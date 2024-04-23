@@ -16,6 +16,7 @@ use jupyter::messages::shell::{
     ExecuteReply, ExecuteRequest, IsCompleteReply, KernelInfoReply, ShellReplyOk,
 };
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
+use miette::Diagnostic;
 use nu::{PipelineRender, ToDeclIds};
 use nu_protocol::engine::{EngineState, Stack};
 use serde_json::json;
@@ -180,60 +181,16 @@ fn handle_shell(
             )
             .unwrap();
 
-        match message.content {
-            ShellRequest::Execute(ExecuteRequest {
-                code,
-                silent,
-                store_history,
-                user_expressions,
-                allow_stdin,
-                stop_on_error,
-            }) => {
-                let pipeline_data = nu::execute(&code, &mut engine_state, &mut stack).unwrap();
-                let execution_count = EXECUTION_COUNTER.fetch_add(1, Ordering::SeqCst);
-                let render =
-                    PipelineRender::render(pipeline_data, &engine_state, &mut stack, to_decl_ids);
-
-                let execute_result = ExecuteResult {
-                    execution_count,
-                    data: render
-                        .data
-                        .into_iter()
-                        .map(|(k, v)| (k.to_string(), v))
-                        .collect(),
-                    metadata: render
-                        .metadata
-                        .into_iter()
-                        .map(|(k, v)| (k.to_string(), v))
-                        .collect(),
-                };
-                let broadcast = IopubBroacast::from(execute_result);
-                let broadcast = Message {
-                    zmq_identities: message.zmq_identities.clone(),
-                    header: Header::new(broadcast.msg_type()),
-                    parent_header: Some(message.header.clone()),
-                    metadata: Metadata::empty(),
-                    content: broadcast,
-                    buffers: vec![],
-                };
-                iopub.send(broadcast.into_multipart().unwrap()).unwrap();
-
-                let reply = ExecuteReply {
-                    execution_count,
-                    user_expressions: json!({}),
-                };
-                let reply = ShellReply::Ok(ShellReplyOk::Execute(reply));
-                let msg_type = ShellReply::msg_type(&message.header.msg_type).unwrap();
-                let reply = Message {
-                    zmq_identities: message.zmq_identities,
-                    header: Header::new(msg_type),
-                    parent_header: Some(message.header.clone()),
-                    metadata: Metadata::empty(),
-                    content: reply,
-                    buffers: vec![],
-                };
-                reply.into_multipart().unwrap().send(&socket).unwrap();
-            }
+        match &message.content {
+            ShellRequest::Execute(request) => handle_execute_request(
+                &socket,
+                &message,
+                &iopub,
+                request,
+                &mut engine_state,
+                &mut stack,
+                to_decl_ids,
+            ),
             ShellRequest::IsComplete(_) => todo!(),
             ShellRequest::KernelInfo => {
                 let kernel_info = KernelInfoReply::get();
@@ -274,6 +231,112 @@ fn handle_heartbeat(socket: Socket) {
         let msg = socket.recv_multipart(0).unwrap();
         socket.send_multipart(msg, 0).unwrap();
     }
+}
+
+fn handle_execute_request(
+    socket: &Socket,
+    message: &Message<ShellRequest>,
+    iopub: &mpsc::Sender<Multipart>,
+    request: &ExecuteRequest,
+    engine_state: &mut EngineState,
+    stack: &mut Stack,
+    to_decl_ids: ToDeclIds,
+) {
+    let ExecuteRequest {
+        code,
+        silent,
+        store_history,
+        user_expressions,
+        allow_stdin,
+        stop_on_error,
+    } = request;
+    let msg_type = ShellReply::msg_type(&message.header.msg_type).unwrap();
+
+    let pipeline_data = match nu::execute(&code, engine_state, stack) {
+        Ok(data) => data,
+        Err(e) => {
+            let name = e
+                .code()
+                .map(|c| c.to_string())
+                .unwrap_or_else(|| "E".to_string());
+            let value = e.to_string();
+            // TODO: for traceback use error source
+            let traceback = vec![];
+
+            let broadcast = IopubBroacast::Error(iopub::Error {
+                name: name.clone(),
+                value: value.clone(),
+                traceback: traceback.clone()
+            });
+            let broadcast = Message {
+                zmq_identities: message.zmq_identities.clone(),
+                header: Header::new(broadcast.msg_type()),
+                parent_header: Some(message.header.clone()),
+                metadata: Metadata::empty(),
+                content: broadcast,
+                buffers: vec![]
+            };
+            iopub.send(broadcast.into_multipart().unwrap()).unwrap();
+
+            let reply = ShellReply::Error {
+                name,
+                value,
+                traceback,
+            };
+            let reply = Message {
+                zmq_identities: message.zmq_identities.clone(),
+                header: Header::new(msg_type),
+                parent_header: Some(message.header.clone()),
+                metadata: Metadata::empty(),
+                content: reply,
+                buffers: vec![],
+            };
+            reply.into_multipart().unwrap().send(socket).unwrap();
+            return;
+        }
+    };
+
+    let execution_count = EXECUTION_COUNTER.fetch_add(1, Ordering::SeqCst);
+    let render = PipelineRender::render(pipeline_data, engine_state, stack, to_decl_ids);
+
+    let execute_result = ExecuteResult {
+        execution_count,
+        data: render
+            .data
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect(),
+        metadata: render
+            .metadata
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect(),
+    };
+    let broadcast = IopubBroacast::from(execute_result);
+    let broadcast = Message {
+        zmq_identities: message.zmq_identities.clone(),
+        header: Header::new(broadcast.msg_type()),
+        parent_header: Some(message.header.clone()),
+        metadata: Metadata::empty(),
+        content: broadcast,
+        buffers: vec![],
+    };
+    iopub.send(broadcast.into_multipart().unwrap()).unwrap();
+
+    let reply = ExecuteReply {
+        execution_count,
+        user_expressions: json!({}),
+    };
+    let reply = ShellReply::Ok(ShellReplyOk::Execute(reply));
+    let reply = Message {
+        zmq_identities: message.zmq_identities.clone(),
+        header: Header::new(msg_type),
+        parent_header: Some(message.header.clone()),
+        metadata: Metadata::empty(),
+        content: reply,
+        buffers: vec![],
+    };
+    reply.into_multipart().unwrap().send(&socket).unwrap();
 }
 
 // no heartbeat nor iopub as they are handled differently
