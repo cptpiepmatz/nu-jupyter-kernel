@@ -2,6 +2,9 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
+use super::Header;
+use crate::jupyter::messages::{Message, Metadata};
+
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub enum IopubBroacast {
@@ -46,10 +49,25 @@ pub struct ExecuteResult {
     pub metadata: HashMap<String, String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone, Copy)]
 #[serde(tag = "execution_state", rename_all = "snake_case")]
 pub enum Status {
     Busy,
     Idle,
     Starting,
+}
+
+impl Status {
+    pub fn into_message(self, parent_header: impl Into<Option<Header>>) -> Message<IopubBroacast> {
+        let broadcast = IopubBroacast::Status(self);
+        let msg_type = broadcast.msg_type();
+        Message {
+            zmq_identities: vec![],
+            header: Header::new(msg_type),
+            parent_header: parent_header.into(),
+            metadata: Metadata::empty(),
+            content: broadcast,
+            buffers: vec![],
+        }
+    }
 }

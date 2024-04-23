@@ -1,18 +1,13 @@
-use std::{iter, vec};
+use std::iter;
 
 use hmac::Mac;
 use zmq::Socket;
 
 use super::{Message, OutgoingContent, DIGESTER};
 
-pub struct Multipart<I>(I)
-where
-    I: Iterator<Item = zmq::Message>;
+pub struct Multipart(Box<dyn Iterator<Item = zmq::Message> + Send>);
 
-impl<I> Multipart<I>
-where
-    I: Iterator<Item = zmq::Message>,
-{
+impl Multipart{
     pub fn send(self, socket: &Socket) -> Result<(), ()> {
         socket.send_multipart(self.0, 0).unwrap();
         Ok(())
@@ -20,7 +15,7 @@ where
 }
 
 impl Message<OutgoingContent> {
-    fn into_multipart_impl(self) -> Result<Multipart<impl Iterator<Item = zmq::Message>>, ()> {
+    fn into_multipart_impl(self) -> Result<Multipart, ()> {
         let zmq_identities = self
             .zmq_identities
             .into_iter()
@@ -56,14 +51,31 @@ impl Message<OutgoingContent> {
             )
             .chain(buffers.map(zmq::Message::from));
 
-        Ok(Multipart(iter))
+        Ok(Multipart(Box::new(iter)))
     }
 }
 
-impl<C> Message<C> where C: Into<OutgoingContent> {
-    pub fn into_multipart(self) -> Result<Multipart<impl Iterator<Item = zmq::Message>>, ()> {
-        let Message {zmq_identities, header, parent_header, metadata, content, buffers} = self;
-        let msg = Message {zmq_identities, header, parent_header, metadata, content: content.into(), buffers};
+impl<C> Message<C>
+where
+    C: Into<OutgoingContent>,
+{
+    pub fn into_multipart(self) -> Result<Multipart, ()> {
+        let Message {
+            zmq_identities,
+            header,
+            parent_header,
+            metadata,
+            content,
+            buffers,
+        } = self;
+        let msg = Message {
+            zmq_identities,
+            header,
+            parent_header,
+            metadata,
+            content: content.into(),
+            buffers,
+        };
         msg.into_multipart_impl()
     }
 }

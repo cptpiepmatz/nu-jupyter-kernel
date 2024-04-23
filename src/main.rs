@@ -11,6 +11,7 @@ use clap::{Parser, Subcommand};
 use const_format::formatcp;
 use jupyter::connection_file::{self, ConnectionFile};
 use jupyter::messages::iopub::ExecuteResult;
+use jupyter::messages::multipart::Multipart;
 use jupyter::messages::shell::{
     ExecuteReply, ExecuteRequest, IsCompleteReply, KernelInfoReply, ShellReplyOk,
 };
@@ -20,7 +21,7 @@ use nu_protocol::engine::{EngineState, Stack};
 use serde_json::json;
 use zmq::{Context, Socket, SocketType};
 
-use crate::jupyter::messages::iopub::IopubBroacast;
+use crate::jupyter::messages::iopub::{IopubBroacast, Status};
 use crate::jupyter::messages::shell::{ShellReply, ShellRequest};
 use crate::jupyter::messages::{
     iopub, Header, IncomingContent, Message, Metadata, OutgoingContent, DIGESTER, KERNEL_SESSION,
@@ -48,6 +49,7 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    #[command(alias = "install")]
     Register {
         #[clap(long, group = "location")]
         user: bool,
@@ -125,14 +127,20 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let sockets = Sockets::start(&connection_file).unwrap();
     DIGESTER.key_init(&connection_file.key).unwrap();
 
-    let shell_thread = thread::spawn(|| handle_shell(sockets.shell));
+    let (iopub_tx, iopub_rx) = mpsc::channel();
+
+    let iopub_thread = thread::spawn(|| handle_iopub(sockets.iopub, iopub_rx));
+    let shell_thread = thread::spawn(|| handle_shell(sockets.shell, iopub_tx));
     let heartbeat_thread = thread::spawn(|| handle_heartbeat(sockets.heartbeat));
 
+    // TODO: shutdown threads too
+
+    let _ = iopub_thread.join();
     let _ = shell_thread.join();
     let _ = heartbeat_thread.join();
 }
 
-fn handle_shell(socket: Socket) {
+fn handle_shell(socket: Socket, iopub: mpsc::Sender<Multipart>) {
     loop {
         let message = match Message::recv(&socket) {
             Err(_) => {
@@ -141,7 +149,12 @@ fn handle_shell(socket: Socket) {
             }
             Ok(message) => message,
         };
-        dbg!(&message);
+
+        iopub.send(Status::Busy
+            .into_message(message.header.clone())
+            .into_multipart()
+            .unwrap()).unwrap();
+
         match message.content {
             ShellRequest::Execute(_) => todo!(),
             ShellRequest::IsComplete(_) => todo!(),
@@ -152,7 +165,7 @@ fn handle_shell(socket: Socket) {
                 let reply = Message {
                     zmq_identities: message.zmq_identities,
                     header: Header::new(msg_type),
-                    parent_header: Some(message.header),
+                    parent_header: Some(message.header.clone()),
                     metadata: Metadata::empty(),
                     content: reply,
                     buffers: vec![],
@@ -160,13 +173,21 @@ fn handle_shell(socket: Socket) {
                 reply.into_multipart().unwrap().send(&socket).unwrap();
             }
         }
+
+        iopub.send(Status::Idle
+            .into_message(message.header)
+            .into_multipart()
+            .unwrap()).unwrap();
     }
 }
 
-fn handle_iopub(socket: Socket, iopub_rx: mpsc::Receiver<Vec<Vec<u8>>>) {
+fn handle_iopub(
+    socket: Socket,
+    iopub_rx: mpsc::Receiver<Multipart>,
+) {
     loop {
         let multipart = iopub_rx.recv().unwrap();
-        // socket.send_multipart(multipart, 0).unwrap();
+        multipart.send(&socket).unwrap();
     }
 }
 

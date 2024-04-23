@@ -20,7 +20,8 @@ pub fn register_kernel(location: RegisterLocation) {
     let mut file_path = PathBuf::from(path);
     file_path.push("kernel.json");
     let manifest = serde_json::to_string_pretty(&kernel_manifest()).unwrap();
-    fs::write(file_path, manifest).unwrap();
+    fs::write(&file_path, manifest).unwrap();
+    println!("Registered kernel to {}", path.display());
 }
 
 fn kernel_path(location: RegisterLocation) -> impl AsRef<Path> {
