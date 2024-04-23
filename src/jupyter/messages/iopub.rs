@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+use derive_more::From;
 use serde::Serialize;
 
 use super::Header;
 use crate::jupyter::messages::{Message, Metadata};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, From)]
 #[serde(untagged)]
 pub enum IopubBroacast {
     Stream,
@@ -54,7 +55,6 @@ pub struct ExecuteResult {
 pub enum Status {
     Busy,
     Idle,
-    Starting,
 }
 
 impl Status {

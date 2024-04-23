@@ -7,7 +7,7 @@ use super::{Message, OutgoingContent, DIGESTER};
 
 pub struct Multipart(Box<dyn Iterator<Item = zmq::Message> + Send>);
 
-impl Multipart{
+impl Multipart {
     pub fn send(self, socket: &Socket) -> Result<(), ()> {
         socket.send_multipart(self.0, 0).unwrap();
         Ok(())

@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, OnceLock};
-use std::thread;
+use std::{panic, process, thread};
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
@@ -123,24 +123,45 @@ fn main() {
 }
 
 fn start_kernel(connection_file_path: impl AsRef<Path>) {
+    set_avalanche_panic_hook();
+
     let connection_file = ConnectionFile::from_path(connection_file_path).unwrap();
     let sockets = Sockets::start(&connection_file).unwrap();
     DIGESTER.key_init(&connection_file.key).unwrap();
 
+    let engine_state = nu::initial_engine_state();
+    let stack = Stack::new();
+    let to_decl_ids = ToDeclIds::find(&engine_state).unwrap();
+
     let (iopub_tx, iopub_rx) = mpsc::channel();
 
-    let iopub_thread = thread::spawn(|| handle_iopub(sockets.iopub, iopub_rx));
-    let shell_thread = thread::spawn(|| handle_shell(sockets.shell, iopub_tx));
-    let heartbeat_thread = thread::spawn(|| handle_heartbeat(sockets.heartbeat));
+    let heartbeat_thread = thread::Builder::new()
+        .name("heartbeat".to_owned())
+        .spawn(move || handle_heartbeat(sockets.heartbeat))
+        .unwrap();
+    let iopub_thread = thread::Builder::new()
+        .name("iopub".to_owned())
+        .spawn(move || handle_iopub(sockets.iopub, iopub_rx))
+        .unwrap();
+    let shell_thread = thread::Builder::new()
+        .name("shell".to_owned())
+        .spawn(move || handle_shell(sockets.shell, iopub_tx, engine_state, stack, to_decl_ids))
+        .unwrap();
 
     // TODO: shutdown threads too
 
+    let _ = heartbeat_thread.join();
     let _ = iopub_thread.join();
     let _ = shell_thread.join();
-    let _ = heartbeat_thread.join();
 }
 
-fn handle_shell(socket: Socket, iopub: mpsc::Sender<Multipart>) {
+fn handle_shell(
+    socket: Socket,
+    iopub: mpsc::Sender<Multipart>,
+    mut engine_state: EngineState,
+    mut stack: Stack,
+    to_decl_ids: ToDeclIds,
+) {
     loop {
         let message = match Message::recv(&socket) {
             Err(_) => {
@@ -150,13 +171,69 @@ fn handle_shell(socket: Socket, iopub: mpsc::Sender<Multipart>) {
             Ok(message) => message,
         };
 
-        iopub.send(Status::Busy
-            .into_message(message.header.clone())
-            .into_multipart()
-            .unwrap()).unwrap();
+        iopub
+            .send(
+                Status::Busy
+                    .into_message(message.header.clone())
+                    .into_multipart()
+                    .unwrap(),
+            )
+            .unwrap();
 
         match message.content {
-            ShellRequest::Execute(_) => todo!(),
+            ShellRequest::Execute(ExecuteRequest {
+                code,
+                silent,
+                store_history,
+                user_expressions,
+                allow_stdin,
+                stop_on_error,
+            }) => {
+                let pipeline_data = nu::execute(&code, &mut engine_state, &mut stack).unwrap();
+                let execution_count = EXECUTION_COUNTER.fetch_add(1, Ordering::SeqCst);
+                let render =
+                    PipelineRender::render(pipeline_data, &engine_state, &mut stack, to_decl_ids);
+
+                let execute_result = ExecuteResult {
+                    execution_count,
+                    data: render
+                        .data
+                        .into_iter()
+                        .map(|(k, v)| (k.to_string(), v))
+                        .collect(),
+                    metadata: render
+                        .metadata
+                        .into_iter()
+                        .map(|(k, v)| (k.to_string(), v))
+                        .collect(),
+                };
+                let broadcast = IopubBroacast::from(execute_result);
+                let broadcast = Message {
+                    zmq_identities: message.zmq_identities.clone(),
+                    header: Header::new(broadcast.msg_type()),
+                    parent_header: Some(message.header.clone()),
+                    metadata: Metadata::empty(),
+                    content: broadcast,
+                    buffers: vec![],
+                };
+                iopub.send(broadcast.into_multipart().unwrap()).unwrap();
+
+                let reply = ExecuteReply {
+                    execution_count,
+                    user_expressions: json!({}),
+                };
+                let reply = ShellReply::Ok(ShellReplyOk::Execute(reply));
+                let msg_type = ShellReply::msg_type(&message.header.msg_type).unwrap();
+                let reply = Message {
+                    zmq_identities: message.zmq_identities,
+                    header: Header::new(msg_type),
+                    parent_header: Some(message.header.clone()),
+                    metadata: Metadata::empty(),
+                    content: reply,
+                    buffers: vec![],
+                };
+                reply.into_multipart().unwrap().send(&socket).unwrap();
+            }
             ShellRequest::IsComplete(_) => todo!(),
             ShellRequest::KernelInfo => {
                 let kernel_info = KernelInfoReply::get();
@@ -174,17 +251,18 @@ fn handle_shell(socket: Socket, iopub: mpsc::Sender<Multipart>) {
             }
         }
 
-        iopub.send(Status::Idle
-            .into_message(message.header)
-            .into_multipart()
-            .unwrap()).unwrap();
+        iopub
+            .send(
+                Status::Idle
+                    .into_message(message.header)
+                    .into_multipart()
+                    .unwrap(),
+            )
+            .unwrap();
     }
 }
 
-fn handle_iopub(
-    socket: Socket,
-    iopub_rx: mpsc::Receiver<Multipart>,
-) {
+fn handle_iopub(socket: Socket, iopub_rx: mpsc::Receiver<Multipart>) {
     loop {
         let multipart = iopub_rx.recv().unwrap();
         multipart.send(&socket).unwrap();
@@ -342,3 +420,11 @@ enum Channel {
 //     dbg!(("control", message));
 //     todo!("handle control")
 // }
+
+fn set_avalanche_panic_hook() {
+    let old_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |panic_info| {
+        old_hook(panic_info);
+        process::exit(1);
+    }));
+}
