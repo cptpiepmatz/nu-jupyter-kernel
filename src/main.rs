@@ -266,7 +266,7 @@ fn handle_execute_request(
             let broadcast = IopubBroacast::Error(iopub::Error {
                 name: name.clone(),
                 value: value.clone(),
-                traceback: traceback.clone()
+                traceback: traceback.clone(),
             });
             let broadcast = Message {
                 zmq_identities: message.zmq_identities.clone(),
@@ -274,7 +274,7 @@ fn handle_execute_request(
                 parent_header: Some(message.header.clone()),
                 metadata: Metadata::empty(),
                 content: broadcast,
-                buffers: vec![]
+                buffers: vec![],
             };
             iopub.send(broadcast.into_multipart().unwrap()).unwrap();
 
@@ -297,31 +297,34 @@ fn handle_execute_request(
     };
 
     let execution_count = EXECUTION_COUNTER.fetch_add(1, Ordering::SeqCst);
-    let render = PipelineRender::render(pipeline_data, engine_state, stack, to_decl_ids);
 
-    let execute_result = ExecuteResult {
-        execution_count,
-        data: render
-            .data
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), v))
-            .collect(),
-        metadata: render
-            .metadata
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), v))
-            .collect(),
-    };
-    let broadcast = IopubBroacast::from(execute_result);
-    let broadcast = Message {
-        zmq_identities: message.zmq_identities.clone(),
-        header: Header::new(broadcast.msg_type()),
-        parent_header: Some(message.header.clone()),
-        metadata: Metadata::empty(),
-        content: broadcast,
-        buffers: vec![],
-    };
-    iopub.send(broadcast.into_multipart().unwrap()).unwrap();
+    if !pipeline_data.is_nothing() {
+        let render = PipelineRender::render(pipeline_data, engine_state, stack, to_decl_ids);
+
+        let execute_result = ExecuteResult {
+            execution_count,
+            data: render
+                .data
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect(),
+            metadata: render
+                .metadata
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect(),
+        };
+        let broadcast = IopubBroacast::from(execute_result);
+        let broadcast = Message {
+            zmq_identities: message.zmq_identities.clone(),
+            header: Header::new(broadcast.msg_type()),
+            parent_header: Some(message.header.clone()),
+            metadata: Metadata::empty(),
+            content: broadcast,
+            buffers: vec![],
+        };
+        iopub.send(broadcast.into_multipart().unwrap()).unwrap();
+    }
 
     let reply = ExecuteReply {
         execution_count,

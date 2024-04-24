@@ -84,7 +84,7 @@ pub struct PipelineRender {
 }
 
 impl PipelineRender {
-    fn render_data_type(
+    fn render_via_cmd(
         value: &Value,
         to_cmd: impl Command,
         decl_id: usize,
@@ -100,26 +100,43 @@ impl PipelineRender {
             .iter()
             .map(|(input, _)| input)
             .any(|input| ty.is_subtype(input));
-        if may {
-            let pipeline_data = PipelineData::Value(value.clone(), None);
-            let call = Call {
-                decl_id,
-                head: Span::unknown(),
-                arguments: vec![],
-                parser_info: HashMap::new(),
-            };
-            let formatted = match to_cmd.run(&engine_state, stack, &call, pipeline_data) {
-                Err(_) => return false,
-                Ok(formatted) => formatted,
-            };
-            let formatted = formatted
-                .into_value(Span::unknown())
-                .into_string()
-                .expect("formatted to string");
-            let mime = mime.parse().expect("should be valid mime");
-            data.insert(mime, formatted);
+        match may {
+            true => Self::render_via_call(value.clone(), decl_id, engine_state, stack, data, mime),
+            false => false,
         }
-        may
+    }
+
+    fn render_via_call(
+        value: Value,
+        decl_id: usize,
+        engine_state: &EngineState,
+        stack: &mut Stack,
+        data: &mut HashMap<Mime, String>,
+        mime: &str,
+    ) -> bool {
+        let pipeline_data = PipelineData::Value(value, None);
+        let call = Call {
+            decl_id,
+            head: Span::unknown(),
+            arguments: vec![],
+            parser_info: HashMap::new(),
+        };
+        let formatted = match nu_engine::eval_call::<WithoutDebug>(
+            &engine_state,
+            stack,
+            &call,
+            pipeline_data,
+        ) {
+            Err(_) => return false,
+            Ok(formatted) => formatted,
+        };
+        let formatted = formatted
+            .into_value(Span::unknown())
+            .into_string()
+            .expect("formatted to string");
+        let mime = mime.parse().expect("should be valid mime");
+        data.insert(mime, formatted);
+        return true;
     }
 
     pub fn render(
@@ -134,16 +151,26 @@ impl PipelineRender {
         let value = pipeline_data.into_value(Span::unknown());
         let ty = value.get_type();
 
-        Self::render_data_type(
-            &value,
-            ToText,
+        // `to text` has any input type, no need to check
+        Self::render_via_call(
+            value.clone(),
             to_decl_ids.to_text,
             engine_state,
             stack,
             &mut data,
             "text/plain",
         );
-        Self::render_data_type(
+        // TODO: pass args to disable theme
+        // call directly as `ToHtml` is private
+        Self::render_via_call(
+            value.clone(),
+            to_decl_ids.to_html,
+            engine_state,
+            stack,
+            &mut data,
+            "text/html",
+        );
+        Self::render_via_cmd(
             &value,
             ToCsv,
             to_decl_ids.to_csv,
@@ -152,7 +179,7 @@ impl PipelineRender {
             &mut data,
             "text/csv",
         );
-        Self::render_data_type(
+        Self::render_via_cmd(
             &value,
             ToJson,
             to_decl_ids.to_json,
@@ -161,7 +188,7 @@ impl PipelineRender {
             &mut data,
             "application/json",
         );
-        Self::render_data_type(
+        Self::render_via_cmd(
             &value,
             ToMd,
             to_decl_ids.to_md,
