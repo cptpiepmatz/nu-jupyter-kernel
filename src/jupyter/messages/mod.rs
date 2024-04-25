@@ -1,4 +1,3 @@
-use std::ops::Deref;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::OnceLock;
 
@@ -11,10 +10,9 @@ use serde_json::json;
 use sha2::digest::InvalidLength;
 use sha2::Sha256;
 use uuid::Uuid;
-use zmq::{Socket, DONTWAIT, SNDMORE};
+use zmq::{Socket, DONTWAIT};
 
-use self::iopub::IopubBroacast;
-use self::shell::{ShellReply, ShellRequest};
+use self::shell::ShellRequest;
 use crate::{Channel, CARGO_TOML};
 
 pub mod iopub;

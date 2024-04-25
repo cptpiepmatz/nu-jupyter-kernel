@@ -1,5 +1,3 @@
-use std::io::{self, IsTerminal};
-
 use serde::{Deserialize, Serialize};
 
 use crate::CARGO_TOML;

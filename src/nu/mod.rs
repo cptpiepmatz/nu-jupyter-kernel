@@ -1,13 +1,9 @@
-use std::collections::HashMap;
 use std::env;
 use std::fmt::Display;
 
 use miette::Diagnostic;
-use mime::Mime;
-use nu_command::{ToCsv, ToJson, ToMd, ToText};
-use nu_protocol::ast::Call;
 use nu_protocol::debugger::WithoutDebug;
-use nu_protocol::engine::{Command, EngineState, Stack, StateWorkingSet};
+use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::{ParseError, PipelineData, ShellError, Span, Value};
 use thiserror::Error;
 

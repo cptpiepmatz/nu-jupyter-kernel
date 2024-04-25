@@ -4,17 +4,15 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{mpsc, Arc, OnceLock};
+use std::sync::mpsc;
 use std::{panic, process, thread};
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
-use jupyter::connection_file::{self, ConnectionFile};
+use jupyter::connection_file::ConnectionFile;
 use jupyter::messages::iopub::ExecuteResult;
 use jupyter::messages::multipart::Multipart;
-use jupyter::messages::shell::{
-    ExecuteReply, ExecuteRequest, IsCompleteReply, KernelInfoReply, ShellReplyOk,
-};
+use jupyter::messages::shell::{ExecuteReply, ExecuteRequest, KernelInfoReply, ShellReplyOk};
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use miette::Diagnostic;
 use nu::render::{PipelineRender, ToDeclIds};
@@ -24,9 +22,7 @@ use zmq::{Context, Socket, SocketType};
 
 use crate::jupyter::messages::iopub::{IopubBroacast, Status};
 use crate::jupyter::messages::shell::{ShellReply, ShellRequest};
-use crate::jupyter::messages::{
-    iopub, Header, IncomingContent, Message, Metadata, OutgoingContent, DIGESTER, KERNEL_SESSION,
-};
+use crate::jupyter::messages::{iopub, Header, Message, Metadata, DIGESTER};
 
 mod jupyter;
 mod nu;
