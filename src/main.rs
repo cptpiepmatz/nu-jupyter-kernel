@@ -17,7 +17,7 @@ use jupyter::messages::shell::{
 };
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use miette::Diagnostic;
-use nu::{PipelineRender, ToDeclIds};
+use nu::render::{PipelineRender, ToDeclIds};
 use nu_protocol::engine::{EngineState, Stack};
 use serde_json::json;
 use zmq::{Context, Socket, SocketType};
