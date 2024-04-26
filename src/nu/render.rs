@@ -164,7 +164,7 @@ impl PipelineRender {
             engine_state,
             stack,
             &mut data,
-            vec![flag("partial")],
+            vec![flag("partial"), flag("html-color")],
             "text/html",
         );
         Self::render_via_cmd(
