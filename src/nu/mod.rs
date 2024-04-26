@@ -7,6 +7,7 @@ use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::{ParseError, PipelineData, ShellError, Span, Value};
 use thiserror::Error;
 
+pub mod commands;
 pub mod render;
 
 pub fn initial_engine_state() -> EngineState {
@@ -14,6 +15,7 @@ pub fn initial_engine_state() -> EngineState {
     let engine_state = nu_cmd_lang::create_default_context();
     let engine_state = nu_command::add_shell_command_context(engine_state);
     let engine_state = nu_cmd_extra::add_extra_command_context(engine_state);
+    let engine_state = commands::add_jupyter_command_context(engine_state);
     let engine_state = add_env_context(engine_state);
 
     engine_state
@@ -21,7 +23,7 @@ pub fn initial_engine_state() -> EngineState {
 
 fn add_env_context(mut engine_state: EngineState) -> EngineState {
     if let Ok(current_dir) = env::current_dir() {
-        engine_state.add_env_var("PWD".to_owned(), Value::String {
+        engine_state.add_env_var(nu_protocol::engine::PWD_ENV.to_owned(), Value::String {
             val: current_dir.to_string_lossy().to_string(),
             internal_span: Span::unknown(),
         });

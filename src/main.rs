@@ -15,8 +15,9 @@ use jupyter::messages::multipart::Multipart;
 use jupyter::messages::shell::{ExecuteReply, ExecuteRequest, KernelInfoReply, ShellReplyOk};
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use miette::Diagnostic;
+use nu::commands::external::External;
 use nu::render::{PipelineRender, ToDeclIds};
-use nu_protocol::engine::{EngineState, Stack};
+use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use serde_json::json;
 use zmq::{Context, Socket, SocketType};
 
@@ -126,9 +127,13 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let sockets = Sockets::start(&connection_file).unwrap();
     DIGESTER.key_init(&connection_file.key).unwrap();
 
-    let engine_state = nu::initial_engine_state();
-    let stack = Stack::new();
+    let mut engine_state = nu::initial_engine_state();
     let to_decl_ids = ToDeclIds::find(&engine_state).unwrap();
+    nu::commands::hide_incompatible_commands(&mut engine_state).unwrap();
+
+    // let mut working_set = StateWorkingSet::new(&engine_state);
+    // working_set.add_decl(Box::new(External));
+    // engine_state.merge_delta(working_set.render()).unwrap();
 
     let (iopub_tx, iopub_rx) = mpsc::channel();
 
@@ -142,7 +147,7 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
         .unwrap();
     let shell_thread = thread::Builder::new()
         .name("shell".to_owned())
-        .spawn(move || handle_shell(sockets.shell, iopub_tx, engine_state, stack, to_decl_ids))
+        .spawn(move || handle_shell(sockets.shell, iopub_tx, engine_state, to_decl_ids))
         .unwrap();
 
     // TODO: shutdown threads too
@@ -156,9 +161,9 @@ fn handle_shell(
     socket: Socket,
     iopub: mpsc::Sender<Multipart>,
     mut engine_state: EngineState,
-    mut stack: Stack,
     to_decl_ids: ToDeclIds,
 ) {
+    let mut stack = Stack::new();
     loop {
         let message = match Message::recv(&socket) {
             Err(_) => {
@@ -247,6 +252,7 @@ fn handle_execute_request(
         stop_on_error,
     } = request;
     let msg_type = ShellReply::msg_type(&message.header.msg_type).unwrap();
+    External::apply(engine_state).unwrap();
 
     let pipeline_data = match nu::execute(&code, engine_state, stack) {
         Ok(data) => data,
