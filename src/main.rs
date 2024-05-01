@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
@@ -14,10 +15,11 @@ use jupyter::messages::iopub::ExecuteResult;
 use jupyter::messages::multipart::Multipart;
 use jupyter::messages::shell::{ExecuteReply, ExecuteRequest, KernelInfoReply, ShellReplyOk};
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
-use miette::Diagnostic;
+use miette::{Diagnostic, Report};
 use mime::Mime;
 use nu::commands::external::External;
 use nu::render::{FormatDeclIds, PipelineRender};
+use nu_protocol::cli_error::CliError;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use parking_lot::Mutex;
 use serde_json::json;
@@ -35,6 +37,7 @@ static_toml::static_toml! {
 }
 
 static EXECUTION_COUNTER: AtomicUsize = AtomicUsize::new(1);
+static CELL_EVAL_COUNTER: AtomicUsize = AtomicUsize::new(1);
 static RENDER_FILTER: Mutex<Option<Mime>> = Mutex::new(Option::None);
 
 #[derive(Debug, Parser)]
@@ -257,21 +260,37 @@ fn handle_execute_request(
     let msg_type = ShellReply::msg_type(&message.header.msg_type).unwrap();
     External::apply(engine_state).unwrap();
 
-    let pipeline_data = match nu::execute(&code, engine_state, stack) {
+    let cell_name = format!(
+        "cell-{}-{}",
+        EXECUTION_COUNTER.load(Ordering::SeqCst),
+        CELL_EVAL_COUNTER.fetch_add(1, Ordering::SeqCst)
+    );
+    let pipeline_data = match nu::execute(&code, engine_state, stack, &cell_name) {
         Ok(data) => data,
         Err(e) => {
-            let name = e
+            let mut working_set = StateWorkingSet::new(engine_state);
+            let report = match e {
+                nu::ExecuteError::Parse { ref error, delta } => {
+                    working_set.delta = delta;
+                    error as &(dyn miette::Diagnostic + Send + Sync + 'static)
+                }
+                nu::ExecuteError::Shell(ref error) => {
+                    error as &(dyn miette::Diagnostic + Send + Sync + 'static)
+                }
+            };
+
+            let name = report
                 .code()
-                .map(|c| c.to_string())
-                .unwrap_or_else(|| "E".to_string());
-            let value = e.to_string();
+                .unwrap_or_else(|| Box::new(format_args!("nu-jupyter-kernel::unknown-error")));
+            let value = format!("Error: {:?}", CliError(report, &working_set));
             // TODO: for traceback use error source
             let traceback = vec![];
 
-            let broadcast = IopubBroacast::Error(iopub::Error {
-                name: name.clone(),
-                value: value.clone(),
-                traceback: traceback.clone(),
+            // we send display data to have control over the rendering of the output
+            let broadcast = IopubBroacast::DisplayData(iopub::DisplayData {
+                data: HashMap::from([(mime::TEXT_PLAIN.to_string(), value.clone())]),
+                metadata: HashMap::new(),
+                transient: HashMap::new(),
             });
             let broadcast = Message {
                 zmq_identities: message.zmq_identities.clone(),
@@ -284,7 +303,7 @@ fn handle_execute_request(
             iopub.send(broadcast.into_multipart().unwrap()).unwrap();
 
             let reply = ShellReply::Error {
-                name,
+                name: name.to_string(),
                 value,
                 traceback,
             };
@@ -302,6 +321,8 @@ fn handle_execute_request(
     };
 
     let execution_count = EXECUTION_COUNTER.fetch_add(1, Ordering::SeqCst);
+    // reset eval counter to keep last digit of cell names as tries for that cell
+    CELL_EVAL_COUNTER.store(1, Ordering::SeqCst);
 
     if !pipeline_data.is_nothing() {
         let mut render_filter = RENDER_FILTER.lock();

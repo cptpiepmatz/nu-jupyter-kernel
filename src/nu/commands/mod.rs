@@ -3,9 +3,10 @@ use std::fmt::Write;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::Category;
 
+pub mod command;
 pub mod display;
 pub mod external;
-pub mod command;
+pub mod print;
 
 const COMMAND_GROUP: &str = "nuju";
 
@@ -22,7 +23,7 @@ pub fn hide_incompatible_commands(
     }
 
     let mut stack = Stack::new();
-    super::execute(&code, engine_state, &mut stack)?;
+    super::execute(&code, engine_state, &mut stack, "hide-initial-commands")?;
     Ok(())
 }
 
