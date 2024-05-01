@@ -38,6 +38,10 @@ pub enum ExecuteError {
     Parse {
         #[source]
         error: ParseError,
+        /// Delta of the working set.
+        /// 
+        /// By keeping this delta around we later can update another working 
+        /// set with and with that correctly source the parsing issues.
         delta: StateDelta,
     },
 
