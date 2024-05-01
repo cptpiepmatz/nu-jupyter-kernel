@@ -282,7 +282,7 @@ fn handle_execute_request(
             let name = report
                 .code()
                 .unwrap_or_else(|| Box::new(format_args!("nu-jupyter-kernel::unknown-error")));
-            let value = format!("Error: {:?}", CliError(report, &working_set));
+            let value = nu_protocol::format_error(&working_set, report);
             // TODO: for traceback use error source
             let traceback = vec![];
 
