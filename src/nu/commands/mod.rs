@@ -5,6 +5,7 @@ use nu_protocol::Category;
 
 pub mod display;
 pub mod external;
+pub mod command;
 
 const COMMAND_GROUP: &str = "nuju";
 
@@ -40,6 +41,7 @@ pub fn add_jupyter_command_context(mut engine_state: EngineState) -> EngineState
         }
 
         bind_command! {
+            command::Nuju,
             external::External,
             display::Display
         }
