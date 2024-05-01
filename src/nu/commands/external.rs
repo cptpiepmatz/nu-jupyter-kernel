@@ -6,6 +6,8 @@ use nu_protocol::ast::Call;
 use nu_protocol::engine::{Command, EngineState, Stack, StateWorkingSet};
 use nu_protocol::{Category, PipelineData, ShellError, Signature, Span, Type, Value};
 
+use super::COMMANDS_TOML;
+
 #[atomic_enum]
 #[derive(PartialEq)]
 enum ExternalState {
@@ -27,31 +29,24 @@ impl AtomicExternalState {
 
 static EXTERNAL_STATE: AtomicExternalState = AtomicExternalState::new(ExternalState::Disabled);
 
-static EXTERNAL_NAME: &str = formatcp!("{} external", super::COMMAND_GROUP);
-
 #[derive(Debug, Clone)]
 pub struct External;
 
 impl Command for External {
     fn name(&self) -> &str {
-        EXTERNAL_NAME
+        COMMANDS_TOML.external.name
     }
 
     fn usage(&self) -> &str {
-        "Enable external commands for subsequent cells."
+        COMMANDS_TOML.external.usage
     }
 
     fn extra_usage(&self) -> &str {
-        "Activates a setting that permits the use of external commands in \n\
-        all subsequent cell evaluations within the notebook. This \n\
-        irreversible change enhances flexibility for advanced tasks. \n\
-        By disabling external commands by default, notebooks become more \n\
-        portable and less likely to encounter failures when run on \n\
-        different machines."
+        COMMANDS_TOML.external.extra_usage
     }
 
     fn search_terms(&self) -> Vec<&str> {
-        vec!["jupyter", "external", "run"]
+        COMMANDS_TOML.external.search_tems.into()
     }
 
     fn signature(&self) -> Signature {

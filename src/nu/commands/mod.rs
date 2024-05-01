@@ -2,23 +2,23 @@ use std::fmt::Write;
 
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::Category;
+use static_toml::static_toml;
 
 pub mod command;
 pub mod display;
 pub mod external;
 pub mod print;
 
-const COMMAND_GROUP: &str = "nuju";
-
-// TODO: check out which more should be hidden
-static INCOMPATIBLE_COMMANDS: &[&str] = &["input", "exit", "run-external"];
+static_toml::static_toml! {
+    const COMMANDS_TOML = include_toml!("commands.toml");
+}
 
 /// Hide incompatible commands so that users don't accidentally call them.
 pub fn hide_incompatible_commands(
     engine_state: &mut EngineState,
 ) -> Result<(), super::ExecuteError> {
     let mut code = String::new();
-    for command in INCOMPATIBLE_COMMANDS {
+    for command in COMMANDS_TOML.incompatible_commands {
         writeln!(code, "hide {command}").expect("String::write is infallible");
     }
 

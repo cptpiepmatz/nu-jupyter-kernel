@@ -1,0 +1,47 @@
+# this file holds all the texts that commands use
+
+# TODO: check out which more should be hidden
+incompatible_commands = ["input", "exit", "run-external"]
+
+[nuju]
+name = "nuju"
+usage = "Control behavior of the kernel."
+extra_usage = """
+You must use one of the following subcommands.
+Using this command as-is will only produce this help message.
+"""
+
+[display]
+name = "nuju display"
+usage = "Control the rendering of the current cell's output."
+extra_usage = """
+Applies a filter to control how the output of the current cell is displayed. 
+This command can be positioned anywhere within the cell's code. It passes 
+through the cell's data, allowing it to be used effectively as the final 
+command without altering the output content.
+"""
+search_terms = ["jupyter", "display", "cell", "output"]
+
+[[display.examples]]
+example = "{a: 3, b: [1, 2, 2]} | nuju display md"
+description = "Force render output to be markdown"
+
+[[display.examples]]
+example = "{a: 3, b: [1, 2, 2]} | nuju display json"
+description = "Force render output to be json"
+
+[[display.examples]]
+example = "{a: 3, b: [1, 2, 2]} | table --expand | nuju display txt"
+description = "Force render output to be a classic nushell table"
+
+[external]
+name = "nuju external"
+usage = "Enable external commands for subsequent cells."
+extra_usage = """
+Activates a setting that permits the use of external commands in all subsequent 
+cell evaluations within the notebook. This irreversible change enhances 
+flexibility for advanced tasks. By disabling external commands by default, 
+notebooks become more portable and less likely to encounter failures when run 
+on different machines."
+"""
+search_tems = ["jupyter", "external", "run"]

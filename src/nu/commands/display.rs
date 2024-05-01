@@ -3,31 +3,27 @@ use mime_guess::MimeGuess;
 use nu_protocol::engine::Command;
 use nu_protocol::{Example, ShellError, Signature, SyntaxShape, Type};
 
+use super::COMMANDS_TOML;
 use crate::RENDER_FILTER;
-
-static EXTERNAL_NAME: &str = formatcp!("{} display", super::COMMAND_GROUP);
 
 #[derive(Debug, Clone)]
 pub struct Display;
 
 impl Command for Display {
     fn name(&self) -> &str {
-        EXTERNAL_NAME
+        COMMANDS_TOML.display.name
     }
 
     fn usage(&self) -> &str {
-        "Control the rendering of the current cell's output."
+        COMMANDS_TOML.display.usage
     }
 
     fn extra_usage(&self) -> &str {
-        "Applies a filter to control how the output of the current cell is \ndisplayed. This \
-         command can be positioned anywhere within the cell's \ncode. It passes through the cell's \
-         data, allowing it to be used \neffectively as the final command without altering the \
-         output content."
+        COMMANDS_TOML.display.extra_usage
     }
 
     fn search_terms(&self) -> Vec<&str> {
-        vec!["jupyter", "display", "cell", "output"]
+        COMMANDS_TOML.display.search_terms.into()
     }
 
     fn signature(&self) -> Signature {
@@ -38,23 +34,16 @@ impl Command for Display {
     }
 
     fn examples(&self) -> Vec<Example> {
-        vec![
-            Example {
-            example: "{a: 3, b: [1, 2, 2]} | nuju display md",
-            description: "Force render output to be markdown",
-            result: None
-        },
-        Example {
-            example: "{a: 3, b: [1, 2, 2]} | nuju display json",
-            description: "Force render output to be json",
-            result: None
-        },
-        Example {
-            example: "{a: 3, b: [1, 2, 2]} | table --expand | nuju display txt",
-            description: "Force render output to be a classic nushell table",
-            result: None
-        }
-        ]
+        COMMANDS_TOML
+            .display
+            .examples
+            .iter()
+            .map(|eg| Example {
+                example: eg.example,
+                description: eg.description,
+                result: None,
+            })
+            .collect()
     }
 
     fn run(

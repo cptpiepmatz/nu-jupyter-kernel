@@ -1,15 +1,18 @@
-use nu_engine::{command_prelude::*, get_full_help};
+use nu_engine::command_prelude::*;
+use nu_engine::get_full_help;
+
+use super::COMMANDS_TOML;
 
 #[derive(Clone)]
 pub struct Nuju;
 
 impl Command for Nuju {
     fn name(&self) -> &str {
-        super::COMMAND_GROUP
+        COMMANDS_TOML.nuju.name
     }
 
     fn usage(&self) -> &str {
-        "Control behavior of the kernel."
+        COMMANDS_TOML.nuju.usage
     }
 
     fn signature(&self) -> nu_protocol::Signature {
@@ -19,8 +22,7 @@ impl Command for Nuju {
     }
 
     fn extra_usage(&self) -> &str {
-        "You must use one of the following subcommands.\n\
-        Using this command as-is will only produce this help message."
+        COMMANDS_TOML.nuju.extra_usage
     }
 
     fn run(
