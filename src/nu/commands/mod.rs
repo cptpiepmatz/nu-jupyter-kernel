@@ -6,7 +6,7 @@ use nu_protocol::Category;
 pub mod display;
 pub mod external;
 
-const COMMAND_GROUP: &str = "nujy";
+const COMMAND_GROUP: &str = "nuju";
 
 // TODO: check out which more should be hidden
 static INCOMPATIBLE_COMMANDS: &[&str] = &["input", "exit", "run-external"];
