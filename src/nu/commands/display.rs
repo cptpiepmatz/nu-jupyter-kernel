@@ -1,7 +1,7 @@
 use const_format::formatcp;
 use mime_guess::MimeGuess;
 use nu_protocol::engine::Command;
-use nu_protocol::{ShellError, Signature, SyntaxShape, Type};
+use nu_protocol::{Example, ShellError, Signature, SyntaxShape, Type};
 
 use crate::RENDER_FILTER;
 
@@ -35,6 +35,26 @@ impl Command for Display {
             .required("format", SyntaxShape::String, "Format to filter for")
             .input_output_types(vec![(Type::Any, Type::Any)])
             .category(super::category())
+    }
+
+    fn examples(&self) -> Vec<Example> {
+        vec![
+            Example {
+            example: "{a: 3, b: [1, 2, 2]} | nuju display md",
+            description: "Force render output to be markdown",
+            result: None
+        },
+        Example {
+            example: "{a: 3, b: [1, 2, 2]} | nuju display json",
+            description: "Force render output to be json",
+            result: None
+        },
+        Example {
+            example: "{a: 3, b: [1, 2, 2]} | table --expand | nuju display txt",
+            description: "Force render output to be a classic nushell table",
+            result: None
+        }
+        ]
     }
 
     fn run(
