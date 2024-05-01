@@ -6,6 +6,7 @@ use nu_protocol::ast::{Argument, Call};
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{Command, EngineState, Stack};
 use nu_protocol::{PipelineData, Span, Spanned, Value};
+use parking_lot::Mutex;
 
 macro_rules! create_format_decl_ids {
     ($($field:ident : $search_str:expr),+ $(,)?) => {
@@ -17,7 +18,7 @@ macro_rules! create_format_decl_ids {
         impl FormatDeclIds {
             pub fn find(engine_state: &EngineState) -> Result<FormatDeclIds, ()> {
                 $(let mut $field = None;)+
-                
+
                 for (str_bytes, decl_id) in engine_state.get_decls_sorted(false) {
                     let s = String::from_utf8(str_bytes).unwrap();
                     match s.as_str() {
@@ -72,7 +73,7 @@ impl PipelineRender {
         engine_state: &EngineState,
         stack: &mut Stack,
         data: &mut HashMap<Mime, String>,
-        mime: &str,
+        mime: Mime,
     ) -> bool {
         let ty = value.get_type();
         let may = to_cmd
@@ -102,7 +103,7 @@ impl PipelineRender {
         stack: &mut Stack,
         data: &mut HashMap<Mime, String>,
         arguments: Vec<Argument>,
-        mime: &str,
+        mime: Mime,
     ) -> bool {
         let pipeline_data = PipelineData::Value(value, None);
         let call = Call {
@@ -124,24 +125,25 @@ impl PipelineRender {
             .into_value(Span::unknown())
             .into_string()
             .expect("formatted to string");
-        let mime = mime.parse().expect("should be valid mime");
         data.insert(mime, formatted);
         return true;
     }
 
+    // TODO: add a render filter here
     pub fn render(
         pipeline_data: PipelineData,
         engine_state: &EngineState,
         stack: &mut Stack,
         format_decl_ids: FormatDeclIds,
+        filter: Option<Mime>,
     ) -> PipelineRender {
         let mut data = HashMap::new();
         let metadata = HashMap::new();
-        // TODO: use real span here
         let value = pipeline_data.into_value(Span::unknown());
         let ty = value.get_type();
 
         // `to text` has any input type, no need to check
+        // also we always need to provide plain text output
         Self::render_via_call(
             value.clone(),
             format_decl_ids.to_text,
@@ -149,46 +151,60 @@ impl PipelineRender {
             stack,
             &mut data,
             vec![],
-            "text/plain",
+            mime::TEXT_PLAIN,
         );
-        // TODO: pass args to disable theme
+
+        let match_filter = |mime| filter.is_none() || filter == Some(mime);
+
         // call directly as `ToHtml` is private
-        Self::render_via_call(
-            value.clone(),
-            format_decl_ids.to_html,
-            engine_state,
-            stack,
-            &mut data,
-            vec![flag("partial"), flag("html-color")],
-            "text/html",
-        );
-        Self::render_via_cmd(
-            &value,
-            ToCsv,
-            format_decl_ids.to_csv,
-            engine_state,
-            stack,
-            &mut data,
-            "text/csv",
-        );
-        Self::render_via_cmd(
-            &value,
-            ToJson,
-            format_decl_ids.to_json,
-            engine_state,
-            stack,
-            &mut data,
-            "application/json",
-        );
-        Self::render_via_cmd(
-            &value,
-            ToMd,
-            format_decl_ids.to_md,
-            engine_state,
-            stack,
-            &mut data,
-            "text/markdown",
-        );
+        if match_filter(mime::TEXT_HTML) {
+            Self::render_via_call(
+                value.clone(),
+                format_decl_ids.to_html,
+                engine_state,
+                stack,
+                &mut data,
+                vec![flag("partial"), flag("html-color")],
+                mime::TEXT_HTML,
+            );
+        }
+
+        if match_filter(mime::TEXT_CSV) {
+            Self::render_via_cmd(
+                &value,
+                ToCsv,
+                format_decl_ids.to_csv,
+                engine_state,
+                stack,
+                &mut data,
+                mime::TEXT_CSV,
+            );
+        }
+        if match_filter(mime::APPLICATION_JSON) {
+            Self::render_via_cmd(
+                &value,
+                ToJson,
+                format_decl_ids.to_json,
+                engine_state,
+                stack,
+                &mut data,
+                mime::APPLICATION_JSON,
+            );
+        }
+        let md_mime: mime::Mime = "text/markdown"
+            .parse()
+            .expect("'text/markdown' is valid mime type");
+        if match_filter(md_mime.clone()) {
+            Self::render_via_cmd(
+                &value,
+                ToMd,
+                format_decl_ids.to_md,
+                engine_state,
+                stack,
+                &mut data,
+                md_mime,
+            );
+        }
 
         PipelineRender { data, metadata }
     }

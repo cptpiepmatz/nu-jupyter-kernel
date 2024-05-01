@@ -3,6 +3,7 @@ use std::fmt::Write;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::Category;
 
+pub mod display;
 pub mod external;
 
 const COMMAND_GROUP: &str = "nujy";
@@ -39,7 +40,8 @@ pub fn add_jupyter_command_context(mut engine_state: EngineState) -> EngineState
         }
 
         bind_command! {
-            external::External
+            external::External,
+            display::Display
         }
 
         working_set.render()

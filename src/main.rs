@@ -15,9 +15,11 @@ use jupyter::messages::multipart::Multipart;
 use jupyter::messages::shell::{ExecuteReply, ExecuteRequest, KernelInfoReply, ShellReplyOk};
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use miette::Diagnostic;
+use mime::Mime;
 use nu::commands::external::External;
-use nu::render::{PipelineRender, FormatDeclIds};
+use nu::render::{FormatDeclIds, PipelineRender};
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
+use parking_lot::Mutex;
 use serde_json::json;
 use zmq::{Context, Socket, SocketType};
 
@@ -33,6 +35,7 @@ static_toml::static_toml! {
 }
 
 static EXECUTION_COUNTER: AtomicUsize = AtomicUsize::new(1);
+static RENDER_FILTER: Mutex<Option<Mime>> = Mutex::new(Option::None);
 
 #[derive(Debug, Parser)]
 #[command(version, long_version = formatcp!(
@@ -301,7 +304,14 @@ fn handle_execute_request(
     let execution_count = EXECUTION_COUNTER.fetch_add(1, Ordering::SeqCst);
 
     if !pipeline_data.is_nothing() {
-        let render = PipelineRender::render(pipeline_data, engine_state, stack, format_decl_ids);
+        let mut render_filter = RENDER_FILTER.lock();
+        let render = PipelineRender::render(
+            pipeline_data,
+            engine_state,
+            stack,
+            format_decl_ids,
+            render_filter.take(),
+        );
 
         let execute_result = ExecuteResult {
             execution_count,
