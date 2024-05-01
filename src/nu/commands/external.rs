@@ -42,10 +42,12 @@ impl Command for External {
     }
 
     fn extra_usage(&self) -> &str {
-        "Activates a setting that permits the use of external commands in \nall subsequent cell \
-         evaluations within the notebook. This \nirreversible change enhances flexibility for \
-         advanced tasks. \nBy disabling external commands by default, notebooks become more \
-         \nportable and less likely to encounter failures when run on \ndifferent machines."
+        "Activates a setting that permits the use of external commands in \n\
+        all subsequent cell evaluations within the notebook. This \n\
+        irreversible change enhances flexibility for advanced tasks. \n\
+        By disabling external commands by default, notebooks become more \n\
+        portable and less likely to encounter failures when run on \n\
+        different machines."
     }
 
     fn search_terms(&self) -> Vec<&str> {
