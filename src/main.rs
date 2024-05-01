@@ -16,7 +16,7 @@ use jupyter::messages::shell::{ExecuteReply, ExecuteRequest, KernelInfoReply, Sh
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use miette::Diagnostic;
 use nu::commands::external::External;
-use nu::render::{PipelineRender, ToDeclIds};
+use nu::render::{PipelineRender, FormatDeclIds};
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use serde_json::json;
 use zmq::{Context, Socket, SocketType};
@@ -128,7 +128,7 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
     DIGESTER.key_init(&connection_file.key).unwrap();
 
     let mut engine_state = nu::initial_engine_state();
-    let to_decl_ids = ToDeclIds::find(&engine_state).unwrap();
+    let to_decl_ids = FormatDeclIds::find(&engine_state).unwrap();
     nu::commands::hide_incompatible_commands(&mut engine_state).unwrap();
 
     // let mut working_set = StateWorkingSet::new(&engine_state);
@@ -161,7 +161,7 @@ fn handle_shell(
     socket: Socket,
     iopub: mpsc::Sender<Multipart>,
     mut engine_state: EngineState,
-    to_decl_ids: ToDeclIds,
+    format_decl_ids: FormatDeclIds,
 ) {
     let mut stack = Stack::new();
     loop {
@@ -190,7 +190,7 @@ fn handle_shell(
                 request,
                 &mut engine_state,
                 &mut stack,
-                to_decl_ids,
+                format_decl_ids,
             ),
             ShellRequest::IsComplete(_) => todo!(),
             ShellRequest::KernelInfo => {
@@ -241,7 +241,7 @@ fn handle_execute_request(
     request: &ExecuteRequest,
     engine_state: &mut EngineState,
     stack: &mut Stack,
-    to_decl_ids: ToDeclIds,
+    format_decl_ids: FormatDeclIds,
 ) {
     let ExecuteRequest {
         code,
@@ -301,7 +301,7 @@ fn handle_execute_request(
     let execution_count = EXECUTION_COUNTER.fetch_add(1, Ordering::SeqCst);
 
     if !pipeline_data.is_nothing() {
-        let render = PipelineRender::render(pipeline_data, engine_state, stack, to_decl_ids);
+        let render = PipelineRender::render(pipeline_data, engine_state, stack, format_decl_ids);
 
         let execute_result = ExecuteResult {
             execution_count,

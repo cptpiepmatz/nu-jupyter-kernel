@@ -7,50 +7,45 @@ use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{Command, EngineState, Stack};
 use nu_protocol::{PipelineData, Span, Spanned, Value};
 
-#[derive(Debug, Clone, Copy)]
-pub struct ToDeclIds {
-    pub to_text: usize,
-    pub to_csv: usize,
-    pub to_json: usize,
-    pub to_html: usize,
-    pub to_md: usize,
-}
+macro_rules! create_format_decl_ids {
+    ($($field:ident : $search_str:expr),+ $(,)?) => {
+        #[derive(Debug, Clone, Copy)]
+        pub struct FormatDeclIds {
+            $(pub $field: usize,)+
+        }
 
-impl ToDeclIds {
-    pub fn find(engine_state: &EngineState) -> Result<ToDeclIds, ()> {
-        let mut to_text = None;
-        let mut to_csv = None;
-        let mut to_json = None;
-        let mut to_html = None;
-        let mut to_md = None;
+        impl FormatDeclIds {
+            pub fn find(engine_state: &EngineState) -> Result<FormatDeclIds, ()> {
+                $(let mut $field = None;)+
+                
+                for (str_bytes, decl_id) in engine_state.get_decls_sorted(false) {
+                    let s = String::from_utf8(str_bytes).unwrap();
+                    match s.as_str() {
+                        $($search_str => $field = Some(decl_id),)+
+                        _ => (),
+                    }
+                }
 
-        for (str_bytes, decl_id) in engine_state.get_decls_sorted(false) {
-            let s = String::from_utf8(str_bytes).unwrap();
-            match s.as_str() {
-                "to text" => to_text = Some(decl_id),
-                "to csv" => to_csv = Some(decl_id),
-                "to json" => to_json = Some(decl_id),
-                "to html" => to_html = Some(decl_id),
-                "to md" => to_md = Some(decl_id),
-                _ => (),
+                if let ($(Some($field),)+) = ($($field,)+) {
+                    return Ok(FormatDeclIds {
+                        $($field,)+
+                    });
+                }
+
+                todo!("handle not being able to find all formats")
             }
         }
-
-        if let (Some(to_text), Some(to_csv), Some(to_json), Some(to_html), Some(to_md)) =
-            (to_text, to_csv, to_json, to_html, to_md)
-        {
-            return Ok(ToDeclIds {
-                to_text,
-                to_csv,
-                to_json,
-                to_html,
-                to_md,
-            });
-        }
-
-        todo!()
-    }
+    };
 }
+
+create_format_decl_ids!(
+    to_text: "to text",
+    to_csv: "to csv",
+    to_json: "to json",
+    to_html: "to html",
+    to_md: "to md",
+    table: "table",
+);
 
 fn flag(flag: impl Into<String>) -> Argument {
     Argument::Named((
@@ -138,7 +133,7 @@ impl PipelineRender {
         pipeline_data: PipelineData,
         engine_state: &EngineState,
         stack: &mut Stack,
-        to_decl_ids: ToDeclIds,
+        format_decl_ids: FormatDeclIds,
     ) -> PipelineRender {
         let mut data = HashMap::new();
         let metadata = HashMap::new();
@@ -149,7 +144,7 @@ impl PipelineRender {
         // `to text` has any input type, no need to check
         Self::render_via_call(
             value.clone(),
-            to_decl_ids.to_text,
+            format_decl_ids.to_text,
             engine_state,
             stack,
             &mut data,
@@ -160,7 +155,7 @@ impl PipelineRender {
         // call directly as `ToHtml` is private
         Self::render_via_call(
             value.clone(),
-            to_decl_ids.to_html,
+            format_decl_ids.to_html,
             engine_state,
             stack,
             &mut data,
@@ -170,7 +165,7 @@ impl PipelineRender {
         Self::render_via_cmd(
             &value,
             ToCsv,
-            to_decl_ids.to_csv,
+            format_decl_ids.to_csv,
             engine_state,
             stack,
             &mut data,
@@ -179,7 +174,7 @@ impl PipelineRender {
         Self::render_via_cmd(
             &value,
             ToJson,
-            to_decl_ids.to_json,
+            format_decl_ids.to_json,
             engine_state,
             stack,
             &mut data,
@@ -188,7 +183,7 @@ impl PipelineRender {
         Self::render_via_cmd(
             &value,
             ToMd,
-            to_decl_ids.to_md,
+            format_decl_ids.to_md,
             engine_state,
             stack,
             &mut data,
