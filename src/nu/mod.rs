@@ -9,6 +9,7 @@ use thiserror::Error;
 pub mod commands;
 pub mod render;
 
+#[allow(clippy::let_and_return)] // i like it here
 pub fn initial_engine_state() -> EngineState {
     // TODO: compare with nu_cli::get_engine_state for other contexts
     let engine_state = nu_cmd_lang::create_default_context();
