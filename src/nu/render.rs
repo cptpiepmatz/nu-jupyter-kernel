@@ -6,7 +6,6 @@ use nu_protocol::ast::{Argument, Call};
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{Command, EngineState, Stack};
 use nu_protocol::{PipelineData, Span, Spanned, Value};
-use parking_lot::Mutex;
 
 macro_rules! create_format_decl_ids {
     ($($field:ident : $search_str:expr),+ $(,)?) => {

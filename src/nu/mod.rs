@@ -1,10 +1,9 @@
-use std::fmt::{Debug, Display};
-use std::{env, mem};
+use std::env;
+use std::fmt::Debug;
 
-use miette::Diagnostic;
 use nu_protocol::debugger::WithoutDebug;
-use nu_protocol::engine::{EngineState, FileStack, Stack, StateDelta, StateWorkingSet};
-use nu_protocol::{ErrorStyle, ParseError, PipelineData, ShellError, Span, Value};
+use nu_protocol::engine::{EngineState, Stack, StateDelta, StateWorkingSet};
+use nu_protocol::{ParseError, PipelineData, ShellError, Span, Value};
 use thiserror::Error;
 
 pub mod commands;

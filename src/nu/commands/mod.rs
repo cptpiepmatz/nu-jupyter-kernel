@@ -2,7 +2,6 @@ use std::fmt::Write;
 
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::Category;
-use static_toml::static_toml;
 
 pub mod command;
 pub mod display;

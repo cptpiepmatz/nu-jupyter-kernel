@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 
 use mime::Mime;
@@ -98,7 +97,8 @@ fn handle_kernel_info_request(ctx: &HandlerContext) {
 
 /// Representation of cell execution in Jupyter.
 ///
-/// Used to keep track of the execution counter and retry attempts for the same cell.
+/// Used to keep track of the execution counter and retry attempts for the same
+/// cell.
 struct Cell {
     execution_counter: usize,
     retry_counter: usize,

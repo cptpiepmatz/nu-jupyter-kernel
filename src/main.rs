@@ -2,32 +2,18 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::{panic, process, thread};
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
 use jupyter::connection_file::ConnectionFile;
-use jupyter::messages::iopub::ExecuteResult;
-use jupyter::messages::multipart::Multipart;
-use jupyter::messages::shell::{ExecuteReply, ExecuteRequest, KernelInfoReply, ShellReplyOk};
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
-use miette::{Diagnostic, Report};
-use mime::Mime;
-use nu::commands::external::External;
-use nu::render::{FormatDeclIds, PipelineRender};
-use nu_protocol::cli_error::CliError;
-use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
-use parking_lot::Mutex;
-use serde_json::json;
+use nu::render::FormatDeclIds;
 use zmq::{Context, Socket, SocketType};
 
-use crate::jupyter::messages::iopub::{IopubBroacast, Status};
-use crate::jupyter::messages::shell::{ShellReply, ShellRequest};
-use crate::jupyter::messages::{iopub, Header, Message, Metadata, DIGESTER};
+use crate::jupyter::messages::DIGESTER;
 
 mod handlers;
 mod jupyter;
