@@ -73,7 +73,7 @@ impl External {
     /// just enabled.
     pub fn apply(engine_state: &mut EngineState) -> Result<(), ShellError> {
         if let ExternalState::JustEnabled = EXTERNAL_STATE.load(Ordering::SeqCst) {
-            let mut working_set = StateWorkingSet::new(&engine_state);
+            let mut working_set = StateWorkingSet::new(engine_state);
             // TODO: add a command that controls the output of external calls
             working_set.add_decl(Box::new(nu_command::External));
             engine_state.merge_delta(working_set.render())?;

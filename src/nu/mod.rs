@@ -61,7 +61,7 @@ impl Debug for ExecuteError {
     }
 }
 
-pub fn execute<'s>(
+pub fn execute(
     code: &str,
     engine_state: &mut EngineState,
     stack: &mut Stack,

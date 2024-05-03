@@ -16,10 +16,7 @@ impl Multipart {
 
 impl Message<OutgoingContent> {
     fn into_multipart_impl(self) -> Result<Multipart, ()> {
-        let zmq_identities = self
-            .zmq_identities
-            .into_iter()
-            .map(|bytes| Vec::from(bytes));
+        let zmq_identities = self.zmq_identities.into_iter().map(Vec::from);
         let header = serde_json::to_string(&self.header).unwrap();
         let parent_header = match self.parent_header {
             Some(ref parent_header) => serde_json::to_string(parent_header).unwrap(),
@@ -30,7 +27,7 @@ impl Message<OutgoingContent> {
             OutgoingContent::Shell(ref content) => serde_json::to_string(content).unwrap(),
             OutgoingContent::Iopub(ref content) => serde_json::to_string(content).unwrap(),
         };
-        let buffers = self.buffers.into_iter().map(|bytes| Vec::from(bytes));
+        let buffers = self.buffers.into_iter().map(Vec::from);
 
         let mut digester = DIGESTER.get().clone();
         digester.update(header.as_bytes());

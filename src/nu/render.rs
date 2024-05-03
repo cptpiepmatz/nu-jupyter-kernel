@@ -111,21 +111,17 @@ impl PipelineRender {
             arguments,
             parser_info: HashMap::new(),
         };
-        let formatted = match nu_engine::eval_call::<WithoutDebug>(
-            &engine_state,
-            stack,
-            &call,
-            pipeline_data,
-        ) {
-            Err(_) => return false,
-            Ok(formatted) => formatted,
-        };
+        let formatted =
+            match nu_engine::eval_call::<WithoutDebug>(engine_state, stack, &call, pipeline_data) {
+                Err(_) => return false,
+                Ok(formatted) => formatted,
+            };
         let formatted = formatted
             .into_value(Span::unknown())
             .into_string()
             .expect("formatted to string");
         data.insert(mime, formatted);
-        return true;
+        true
     }
 
     // TODO: add a render filter here

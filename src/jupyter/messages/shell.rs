@@ -12,15 +12,13 @@ pub enum ShellRequest {
 impl ShellRequest {
     pub fn parse_variant(variant: &str, body: &str) -> Result<Self, ()> {
         match variant {
-            "execute_request" => return Ok(Self::Execute(serde_json::from_str(body).unwrap())),
-            "is_complete_request" => {
-                return Ok(Self::IsComplete(serde_json::from_str(body).unwrap()))
-            }
-            "kernel_info_request" if body == "{}" => return Ok(Self::KernelInfo),
+            "execute_request" => Ok(Self::Execute(serde_json::from_str(body).unwrap())),
+            "is_complete_request" => Ok(Self::IsComplete(serde_json::from_str(body).unwrap())),
+            "kernel_info_request" if body == "{}" => Ok(Self::KernelInfo),
             "kernel_info_request" => todo!("handle incorrect body here"),
             _ => {
                 eprintln!("unknown request {variant}");
-                return Err(());
+                Err(())
             }
         }
     }

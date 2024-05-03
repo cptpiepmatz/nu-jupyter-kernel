@@ -155,10 +155,7 @@ impl Message<IncomingContent> {
         };
 
         let buffers: Vec<Bytes> = match socket.recv_multipart(DONTWAIT) {
-            Ok(buffers) => buffers
-                .into_iter()
-                .map(|bytes| Bytes::from(bytes))
-                .collect(),
+            Ok(buffers) => buffers.into_iter().map(Bytes::from).collect(),
             Err(zmq::Error::EAGAIN) => vec![],
             Err(_) => todo!(),
         };
@@ -185,9 +182,7 @@ impl Message<ShellRequest> {
             content,
             buffers,
         } = msg;
-        let content = match content {
-            IncomingContent::Shell(content) => content,
-        };
+        let IncomingContent::Shell(content) = content;
         Ok(Message {
             zmq_identities,
             header,
