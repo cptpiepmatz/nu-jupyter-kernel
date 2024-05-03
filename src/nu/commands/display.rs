@@ -1,10 +1,10 @@
-use const_format::formatcp;
 use mime_guess::MimeGuess;
 use nu_protocol::engine::Command;
 use nu_protocol::{Example, ShellError, Signature, SyntaxShape, Type};
 
+use crate::handlers::shell::RENDER_FILTER;
+
 use super::COMMANDS_TOML;
-use crate::RENDER_FILTER;
 
 #[derive(Debug, Clone)]
 pub struct Display;
