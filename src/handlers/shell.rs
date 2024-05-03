@@ -19,8 +19,6 @@ use crate::nu::commands::external::External;
 use crate::nu::render::{FormatDeclIds, PipelineRender};
 use crate::nu::{self, ExecuteError};
 
-static EXECUTION_COUNTER: AtomicUsize = AtomicUsize::new(1);
-static CELL_EVAL_COUNTER: AtomicUsize = AtomicUsize::new(1);
 pub static RENDER_FILTER: Mutex<Option<Mime>> = Mutex::new(Option::None);
 
 pub fn handle(
@@ -30,6 +28,7 @@ pub fn handle(
     format_decl_ids: FormatDeclIds,
 ) {
     let mut stack = Stack::new();
+    let mut cell = Cell::new();
     loop {
         let message = match Message::recv(&socket) {
             Err(_) => {
@@ -39,19 +38,20 @@ pub fn handle(
             Ok(message) => message,
         };
 
-        let ctx = HandlerContext {
+        let mut ctx = HandlerContext {
             socket: &socket,
             iopub: &iopub,
             engine_state: &mut engine_state,
             format_decl_ids,
             stack: &mut stack,
+            cell: &mut cell,
             message: &message,
         };
 
-        send_status(&ctx , Status::Busy);
+        send_status(&ctx, Status::Busy);
 
         match &message.content {
-            ShellRequest::Execute(request) => handle_execute_request(&ctx, request),
+            ShellRequest::Execute(request) => handle_execute_request(&mut ctx, request),
             ShellRequest::IsComplete(_) => todo!(),
             ShellRequest::KernelInfo => handle_kernel_info_request(&ctx),
         }
@@ -60,12 +60,13 @@ pub fn handle(
     }
 }
 
-struct HandlerContext<'so, 'io, 'es, 'st, 'm> {
+struct HandlerContext<'so, 'io, 'es, 'st, 'c, 'm> {
     socket: &'so Socket,
     iopub: &'io mpsc::Sender<Multipart>,
     engine_state: &'es mut EngineState,
     format_decl_ids: FormatDeclIds,
     stack: &'st mut Stack,
+    cell: &'c mut Cell,
     message: &'m Message<ShellRequest>,
 }
 
@@ -95,6 +96,47 @@ fn handle_kernel_info_request(ctx: &HandlerContext) {
     reply.into_multipart().unwrap().send(ctx.socket).unwrap();
 }
 
+/// Representation of cell execution in Jupyter.
+///
+/// Used to keep track of the execution counter and retry attempts for the same cell.
+struct Cell {
+    execution_counter: usize,
+    retry_counter: usize,
+}
+
+impl Cell {
+    /// Construct a new Cell.
+    const fn new() -> Self {
+        Cell {
+            execution_counter: 1,
+            retry_counter: 1,
+        }
+    }
+
+    /// Generate a name for the next retry of the current cell.
+    ///
+    /// This method increases the retry counter each time it is called,
+    /// indicating a new attempt on the same cell.
+    fn next_name(&mut self) -> String {
+        let name = format!("cell[{}]#{}", self.execution_counter, self.retry_counter);
+        self.retry_counter += 1;
+        name
+    }
+
+    /// Increment the execution counter after a successful execution.
+    ///
+    /// Jupyter demands that the execution counter only increases after a
+    /// successful execution. This function increments the counter and resets
+    /// the retry counter, indicating a new cell execution. It returns the
+    /// previous execution counter.
+    fn success(&mut self) -> usize {
+        let current_execution_counter = self.execution_counter;
+        self.execution_counter += 1;
+        self.retry_counter = 1;
+        current_execution_counter
+    }
+}
+
 fn handle_execute_request(ctx: &mut HandlerContext, request: &ExecuteRequest) {
     let ExecuteRequest {
         code,
@@ -107,22 +149,14 @@ fn handle_execute_request(ctx: &mut HandlerContext, request: &ExecuteRequest) {
     let msg_type = ShellReply::msg_type(&ctx.message.header.msg_type).unwrap();
     External::apply(ctx.engine_state).unwrap();
 
-    let cell_name = format!(
-        "cell-{}-{}",
-        EXECUTION_COUNTER.load(Ordering::SeqCst),
-        CELL_EVAL_COUNTER.fetch_add(1, Ordering::SeqCst)
-    );
+    let cell_name = ctx.cell.next_name();
     match nu::execute(&code, ctx.engine_state, ctx.stack, &cell_name) {
         Ok(data) => handle_execute_results(ctx, msg_type, data),
-        Err(error) => handle_execute_error(ctx, msg_type, error)
+        Err(error) => handle_execute_error(ctx, msg_type, error),
     };
 }
 
-fn handle_execute_error(
-    ctx: &HandlerContext,
-    msg_type: &str,
-    error: ExecuteError,
-) {
+fn handle_execute_error(ctx: &HandlerContext, msg_type: &str, error: ExecuteError) {
     let mut working_set = StateWorkingSet::new(ctx.engine_state);
     let report = match error {
         nu::ExecuteError::Parse { ref error, delta } => {
@@ -173,14 +207,8 @@ fn handle_execute_error(
     reply.into_multipart().unwrap().send(ctx.socket).unwrap();
 }
 
-fn handle_execute_results(
-    ctx: &HandlerContext,
-    msg_type: &str,
-    pipeline_data: PipelineData
-) {
-    let execution_count = EXECUTION_COUNTER.fetch_add(1, Ordering::SeqCst);
-    // reset eval counter to keep last digit of cell names as tries for that cell
-    CELL_EVAL_COUNTER.store(1, Ordering::SeqCst);
+fn handle_execute_results(ctx: &mut HandlerContext, msg_type: &str, pipeline_data: PipelineData) {
+    let execution_count = ctx.cell.success();
 
     if !pipeline_data.is_nothing() {
         let mut render_filter = RENDER_FILTER.lock();
