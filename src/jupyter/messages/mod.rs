@@ -149,7 +149,6 @@ impl Message<IncomingContent> {
             Channel::Shell => {
                 IncomingContent::Shell(ShellRequest::parse_variant(&header.msg_type, &content)?)
             }
-            Channel::Iopub => unreachable!("only outgoing"),
             Channel::Stdin => todo!(),
             Channel::Control => todo!(),
         };

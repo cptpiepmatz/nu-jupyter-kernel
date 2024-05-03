@@ -91,6 +91,7 @@ impl Sockets {
         })
     }
 }
+
 fn main() {
     let args = Cli::parse();
     match args.command {
@@ -120,10 +121,6 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let to_decl_ids = FormatDeclIds::find(&engine_state).unwrap();
     nu::commands::hide_incompatible_commands(&mut engine_state).unwrap();
 
-    // let mut working_set = StateWorkingSet::new(&engine_state);
-    // working_set.add_decl(Box::new(External));
-    // engine_state.merge_delta(working_set.render()).unwrap();
-
     let (iopub_tx, iopub_rx) = mpsc::channel();
 
     let heartbeat_thread = thread::Builder::new()
@@ -150,7 +147,6 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
 #[derive(Debug, Clone, Copy)]
 enum Channel {
     Shell,
-    Iopub,
     Stdin,
     Control,
 }
