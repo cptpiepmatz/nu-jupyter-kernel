@@ -45,15 +45,15 @@ impl Konst {
         stack.add_var(self.var_id, data.into())
     }
 
-    pub fn data(&self, stack: &Stack, span: Span) -> Result<KonstData, KonstIntegrityError> {
-        let value =
-            stack
-                .get_var(self.var_id, span)
-                .map_err(|_| KonstIntegrityError::MissingField {
-                    path: "$nuju".to_owned(),
-                    expected: KonstData::ty(),
-                })?;
-        KonstData::try_from(value)
+    pub fn data(&self, stack: &Stack, span: Span) -> Result<KonstData, ShellError> {
+        let value = stack
+            .get_var(self.var_id, span)
+            .map_err(|_| KonstIntegrityError::MissingField {
+                path: "$nuju".to_owned(),
+                expected: KonstData::ty(),
+            })
+            .map_err(|err| err.into_shell_error(span))?;
+        KonstData::try_from(value).map_err(|err| err.into_shell_error(span))
     }
 }
 
@@ -70,21 +70,21 @@ pub enum KonstIntegrityError {
     },
 }
 
-impl From<KonstIntegrityError> for ShellError {
-    fn from(value: KonstIntegrityError) -> Self {
+impl KonstIntegrityError {
+    pub fn into_shell_error(self, span: Span) -> ShellError {
         let help = Some(
-            "This error is unexpected. Please consider opening a ticket at https://github.com/cptpiepmatz/nu-jupyter-kernel/issues"
+            "This error is unexpected.\nPlease consider opening a ticket at\nhttps://github.com/cptpiepmatz/nu-jupyter-kernel/issues"
             .to_owned()
         );
         let nuju = "$nuju"; // makes the format! easier
-        match value {
+        match self {
             KonstIntegrityError::MissingField { path, expected } => ShellError::GenericError {
                 error: "$nuju field missing".to_owned(),
                 msg: format!(
-                    "Catastrophic error: the expected path {path:?} is missing in the \
-                     configuration for {nuju:?}. Expected type: {expected}"
+                    "Catastrophic error: the expected path {path:?} is missing in the constant \
+                     for {nuju:?}.\nExpected type: {expected}"
                 ),
-                span: None,
+                span: Some(span),
                 help,
                 inner: vec![],
             },
@@ -98,7 +98,7 @@ impl From<KonstIntegrityError> for ShellError {
                     "Catastrophic error: the path {path:?} has type {unexpected}, but {expected} \
                      was expected."
                 ),
-                span: None,
+                span: Some(span),
                 help,
                 inner: vec![],
             },
