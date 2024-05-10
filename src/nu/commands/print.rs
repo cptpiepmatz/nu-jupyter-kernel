@@ -136,36 +136,11 @@ impl Command for Print {
         };
         let broadcast = IopubBroacast::DisplayData(display_data);
 
-        // TODO: modify error to show that this variable should be in place and
-        //       its probably not the users fault
-        let konst = stack.get_var(self.konst.var_id(), call.head)?;
-        let message = konst.get_data_by_key("message").unwrap();
-        let zmq_identities = message.get_data_by_key("zmq_identities").unwrap();
-        let zmq_identities = zmq_identities
-            .into_list()?
-            .into_iter()
-            .map(|v| v.into_binary().map(|b| Bytes::from(b)))
-            .collect::<Result<Vec<Bytes>, ShellError>>()?;
-        let header = message.get_data_by_key("header").unwrap();
-        let msg_id = header.get_data_by_key("msg_id").unwrap().into_string()?;
-        let session = header.get_data_by_key("session").unwrap().into_string()?;
-        let username = header.get_data_by_key("username").unwrap().into_string()?;
-        let date = header.get_data_by_key("date").unwrap().into_string()?;
-        let msg_type = header.get_data_by_key("msg_type").unwrap().into_string()?;
-        let version = header.get_data_by_key("version").unwrap().into_string()?;
-        let header = Header {
-            msg_id,
-            session,
-            username,
-            date,
-            msg_type,
-            version,
-        };
-
+        let konst = self.konst.data(stack, call.head)?;
         let message = Message {
-            zmq_identities,
+            zmq_identities: konst.message.zmq_identities,
             header: Header::new(broadcast.msg_type()),
-            parent_header: Some(header),
+            parent_header: Some(konst.message.header),
             metadata: Metadata::empty(),
             content: broadcast,
             buffers: vec![],
