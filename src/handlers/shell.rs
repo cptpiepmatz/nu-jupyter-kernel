@@ -155,7 +155,8 @@ fn handle_execute_request(ctx: &mut HandlerContext, request: &ExecuteRequest) {
     External::apply(ctx.engine_state).unwrap();
 
     let cell_name = ctx.cell.next_name();
-    ctx.konst.update(ctx.stack, &cell_name, ctx.message.clone());
+    ctx.konst
+        .update(ctx.stack, cell_name.clone(), ctx.message.clone());
     match nu::execute(code, ctx.engine_state, ctx.stack, &cell_name) {
         Ok(data) => handle_execute_results(ctx, msg_type, data),
         Err(error) => handle_execute_error(ctx, msg_type, error),

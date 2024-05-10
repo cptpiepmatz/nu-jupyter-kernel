@@ -4,10 +4,9 @@ use std::sync::{mpsc, Arc};
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::Category;
 
-use crate::jupyter::messages::multipart::Multipart;
-
 use super::konst::Konst;
 use super::render::FormatDeclIds;
+use crate::jupyter::messages::multipart::Multipart;
 
 pub mod command;
 pub mod display;

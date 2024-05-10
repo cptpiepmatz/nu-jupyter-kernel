@@ -131,7 +131,7 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let ctx = JupyterCommandContext {
         iopub: iopub_tx.clone(),
         format_decl_ids,
-        konst
+        konst,
     };
     let engine_state = add_jupyter_command_context(engine_state, ctx);
 
