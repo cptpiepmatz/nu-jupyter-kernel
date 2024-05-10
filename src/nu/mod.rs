@@ -7,6 +7,7 @@ use nu_protocol::{ParseError, PipelineData, ShellError, Span, Value};
 use thiserror::Error;
 
 pub mod commands;
+pub mod konst;
 pub mod render;
 
 #[allow(clippy::let_and_return)] // i like it here
@@ -15,8 +16,9 @@ pub fn initial_engine_state() -> EngineState {
     let engine_state = nu_cmd_lang::create_default_context();
     let engine_state = nu_command::add_shell_command_context(engine_state);
     let engine_state = nu_cmd_extra::add_extra_command_context(engine_state);
-    let engine_state = commands::add_jupyter_command_context(engine_state);
     let engine_state = add_env_context(engine_state);
+
+    // this doesn't add the jupyter context, as they need more context
 
     engine_state
 }

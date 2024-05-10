@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::CARGO_TOML;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub enum ShellRequest {
     Execute(ExecuteRequest),
     IsComplete(IsCompleteRequest),
@@ -24,7 +24,7 @@ impl ShellRequest {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "snake_case", tag = "status")]
 pub enum ShellReply {
     Ok(ShellReplyOk),
@@ -48,7 +48,7 @@ impl ShellReply {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
 pub enum ShellReplyOk {
     Execute(ExecuteReply),
@@ -56,7 +56,7 @@ pub enum ShellReplyOk {
     IsComplete(IsCompleteReply),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct ExecuteRequest {
     pub code: String,
     #[serde(default)]
@@ -69,18 +69,18 @@ pub struct ExecuteRequest {
     pub stop_on_error: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ExecuteReply {
     pub execution_count: usize,
     pub user_expressions: serde_json::Value,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct IsCompleteRequest {
     pub code: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum IsCompleteReply {
     Complete,
@@ -89,7 +89,7 @@ pub enum IsCompleteReply {
     Unknown,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct KernelInfoReply {
     pub protocol_version: String,
     pub implementation: String,
@@ -100,7 +100,7 @@ pub struct KernelInfoReply {
     pub help_links: Vec<HelpLink>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct KernelLanguageInfo {
     pub name: String,
     pub version: String,
@@ -108,7 +108,7 @@ pub struct KernelLanguageInfo {
     pub file_extension: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct HelpLink {
     pub text: String,
     pub url: String,

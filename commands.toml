@@ -45,3 +45,8 @@ notebooks become more portable and less likely to encounter failures when run
 on different machines."
 """
 search_tems = ["jupyter", "external", "run"]
+
+[print]
+name = "nuju print"
+usage = "Display data for this cell."
+search_terms = ["jupyter", "print", "display", "cell", "output"]

@@ -3,13 +3,16 @@
 #![allow(unused_variables)]
 
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc, OnceLock};
 use std::{panic, process, thread};
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
 use jupyter::connection_file::ConnectionFile;
+use jupyter::messages::multipart::Multipart;
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
+use nu::commands::{add_jupyter_command_context, JupyterCommandContext};
+use nu::konst::Konst;
 use nu::render::FormatDeclIds;
 use zmq::{Context, Socket, SocketType};
 
@@ -118,10 +121,19 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
     DIGESTER.key_init(&connection_file.key).unwrap();
 
     let mut engine_state = nu::initial_engine_state();
-    let to_decl_ids = FormatDeclIds::find(&engine_state).unwrap();
+    let format_decl_ids = FormatDeclIds::find(&engine_state).unwrap();
     nu::commands::hide_incompatible_commands(&mut engine_state).unwrap();
+    let konst = Konst::register(&mut engine_state).unwrap();
 
     let (iopub_tx, iopub_rx) = mpsc::channel();
+    let iopub_tx = Arc::new(iopub_tx);
+
+    let ctx = JupyterCommandContext {
+        iopub: iopub_tx.clone(),
+        format_decl_ids,
+        konst
+    };
+    let engine_state = add_jupyter_command_context(engine_state, ctx);
 
     let heartbeat_thread = thread::Builder::new()
         .name("heartbeat".to_owned())
@@ -133,7 +145,15 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
         .unwrap();
     let shell_thread = thread::Builder::new()
         .name("shell".to_owned())
-        .spawn(move || handlers::shell::handle(sockets.shell, iopub_tx, engine_state, to_decl_ids))
+        .spawn(move || {
+            handlers::shell::handle(
+                sockets.shell,
+                iopub_tx,
+                engine_state,
+                format_decl_ids,
+                konst,
+            )
+        })
         .unwrap();
 
     // TODO: shutdown threads too

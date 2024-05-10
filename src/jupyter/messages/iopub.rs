@@ -6,7 +6,7 @@ use serde::Serialize;
 use super::Header;
 use crate::jupyter::messages::{Message, Metadata};
 
-#[derive(Debug, Serialize, From)]
+#[derive(Debug, Serialize, From, Clone)]
 #[serde(untagged)]
 pub enum IopubBroacast {
     Stream,
@@ -36,21 +36,21 @@ impl IopubBroacast {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct DisplayData {
     pub data: HashMap<String, String>,
     pub metadata: HashMap<String, String>,
     pub transient: HashMap<String, String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ExecuteResult {
     pub execution_count: usize,
     pub data: HashMap<String, String>,
     pub metadata: HashMap<String, String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Error {
     #[serde(rename = "ename")]
     pub name: String,

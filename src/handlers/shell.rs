@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 
 use mime::Mime;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
@@ -15,16 +15,19 @@ use crate::jupyter::messages::shell::{
 };
 use crate::jupyter::messages::{Header, Message, Metadata};
 use crate::nu::commands::external::External;
-use crate::nu::render::{FormatDeclIds, PipelineRender};
+use crate::nu::konst::Konst;
+use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender};
 use crate::nu::{self, ExecuteError};
 
+// TODO: get rid of this static by passing this into the display command
 pub static RENDER_FILTER: Mutex<Option<Mime>> = Mutex::new(Option::None);
 
 pub fn handle(
     socket: Socket,
-    iopub: mpsc::Sender<Multipart>,
+    iopub: Arc<mpsc::Sender<Multipart>>,
     mut engine_state: EngineState,
     format_decl_ids: FormatDeclIds,
+    konst: Konst,
 ) {
     let mut stack = Stack::new();
     let mut cell = Cell::new();
@@ -42,6 +45,7 @@ pub fn handle(
             iopub: &iopub,
             engine_state: &mut engine_state,
             format_decl_ids,
+            konst,
             stack: &mut stack,
             cell: &mut cell,
             message: &message,
@@ -64,6 +68,7 @@ struct HandlerContext<'so, 'io, 'es, 'st, 'c, 'm> {
     iopub: &'io mpsc::Sender<Multipart>,
     engine_state: &'es mut EngineState,
     format_decl_ids: FormatDeclIds,
+    konst: Konst,
     stack: &'st mut Stack,
     cell: &'c mut Cell,
     message: &'m Message<ShellRequest>,
@@ -150,6 +155,7 @@ fn handle_execute_request(ctx: &mut HandlerContext, request: &ExecuteRequest) {
     External::apply(ctx.engine_state).unwrap();
 
     let cell_name = ctx.cell.next_name();
+    ctx.konst.update(ctx.stack, &cell_name, ctx.message.clone());
     match nu::execute(code, ctx.engine_state, ctx.stack, &cell_name) {
         Ok(data) => handle_execute_results(ctx, msg_type, data),
         Err(error) => handle_execute_error(ctx, msg_type, error),
@@ -212,26 +218,19 @@ fn handle_execute_results(ctx: &mut HandlerContext, msg_type: &str, pipeline_dat
 
     if !pipeline_data.is_nothing() {
         let mut render_filter = RENDER_FILTER.lock();
-        let render = PipelineRender::render(
+        let render: StringifiedPipelineRender = PipelineRender::render(
             pipeline_data,
             ctx.engine_state,
             ctx.stack,
             ctx.format_decl_ids,
             render_filter.take(),
-        );
+        )
+        .into();
 
         let execute_result = ExecuteResult {
             execution_count,
-            data: render
-                .data
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect(),
-            metadata: render
-                .metadata
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect(),
+            data: render.data,
+            metadata: render.metadata,
         };
         let broadcast = IopubBroacast::from(execute_result);
         let broadcast = Message {

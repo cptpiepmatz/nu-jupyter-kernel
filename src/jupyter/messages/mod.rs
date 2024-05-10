@@ -86,7 +86,7 @@ impl Header {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Metadata(serde_json::Value);
 
 impl Metadata {
@@ -95,18 +95,18 @@ impl Metadata {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub enum IncomingContent {
     Shell(shell::ShellRequest),
 }
 
-#[derive(Debug, Serialize, From)]
+#[derive(Debug, Serialize, From, Clone)]
 pub enum OutgoingContent {
     Shell(shell::ShellReply),
     Iopub(iopub::IopubBroacast),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Message<C> {
     pub zmq_identities: Vec<Bytes>,
     pub header: Header,

@@ -1,7 +1,13 @@
 use std::fmt::Write;
+use std::sync::{mpsc, Arc};
 
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::Category;
+
+use crate::jupyter::messages::multipart::Multipart;
+
+use super::konst::Konst;
+use super::render::FormatDeclIds;
 
 pub mod command;
 pub mod display;
@@ -30,7 +36,16 @@ pub fn category() -> Category {
     Category::Custom("jupyter".to_owned())
 }
 
-pub fn add_jupyter_command_context(mut engine_state: EngineState) -> EngineState {
+pub struct JupyterCommandContext {
+    pub iopub: Arc<mpsc::Sender<Multipart>>,
+    pub format_decl_ids: FormatDeclIds,
+    pub konst: Konst,
+}
+
+pub fn add_jupyter_command_context(
+    mut engine_state: EngineState,
+    ctx: JupyterCommandContext,
+) -> EngineState {
     let delta = {
         let mut working_set = StateWorkingSet::new(&engine_state);
 
@@ -43,7 +58,8 @@ pub fn add_jupyter_command_context(mut engine_state: EngineState) -> EngineState
         bind_command! {
             command::Nuju,
             external::External,
-            display::Display
+            display::Display,
+            print::Print::new(ctx.iopub, ctx.format_decl_ids, ctx.konst)
         }
 
         working_set.render()

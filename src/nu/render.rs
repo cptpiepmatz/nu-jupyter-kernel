@@ -124,7 +124,6 @@ impl PipelineRender {
         true
     }
 
-    // TODO: add a render filter here
     pub fn render(
         pipeline_data: PipelineData,
         engine_state: &EngineState,
@@ -202,5 +201,28 @@ impl PipelineRender {
         }
 
         PipelineRender { data, metadata }
+    }
+}
+
+#[derive(Debug)]
+pub struct StringifiedPipelineRender {
+    pub data: HashMap<String, String>,
+    pub metadata: HashMap<String, String>,
+}
+
+impl From<PipelineRender> for StringifiedPipelineRender {
+    fn from(render: PipelineRender) -> Self {
+        Self {
+            data: render
+                .data
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect(),
+            metadata: render
+                .metadata
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect(),
+        }
     }
 }
