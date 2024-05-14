@@ -36,7 +36,7 @@ pub fn category() -> Category {
 }
 
 pub struct JupyterCommandContext {
-    pub iopub: Arc<mpsc::Sender<Multipart>>,
+    pub iopub: mpsc::Sender<Multipart>,
     pub format_decl_ids: FormatDeclIds,
     pub konst: Konst,
 }

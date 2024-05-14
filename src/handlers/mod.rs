@@ -25,3 +25,4 @@ pub mod heartbeat {
 }
 
 pub mod shell;
+pub mod stream;

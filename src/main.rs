@@ -2,18 +2,23 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc, OnceLock};
-use std::{panic, process, thread};
+use std::{os, panic, process, thread};
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
+use handlers::shell::Cell;
+use handlers::stream::StreamHandler;
 use jupyter::connection_file::ConnectionFile;
+use jupyter::messages::iopub;
 use jupyter::messages::multipart::Multipart;
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use nu::commands::{add_jupyter_command_context, JupyterCommandContext};
 use nu::konst::Konst;
 use nu::render::FormatDeclIds;
+use nu_protocol::engine::Stack;
 use zmq::{Context, Socket, SocketType};
 
 use crate::jupyter::messages::DIGESTER;
@@ -126,7 +131,6 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let konst = Konst::register(&mut engine_state).unwrap();
 
     let (iopub_tx, iopub_rx) = mpsc::channel();
-    let iopub_tx = Arc::new(iopub_tx);
 
     let ctx = JupyterCommandContext {
         iopub: iopub_tx.clone(),
@@ -134,6 +138,12 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
         konst,
     };
     let engine_state = add_jupyter_command_context(engine_state, ctx);
+
+    let (stdout_handler, stdout_file) = StreamHandler::start(iopub::StreamName::Stdout, iopub_tx.clone()).unwrap();
+    let (stderr_handler, stderr_file) = StreamHandler::start(iopub::StreamName::Stderr, iopub_tx.clone()).unwrap();
+    let stack = Stack::new().stdout_file(stdout_file).stderr_file(stderr_file);
+
+    let cell = Cell::new();
 
     let heartbeat_thread = thread::Builder::new()
         .name("heartbeat".to_owned())
@@ -149,9 +159,13 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
             handlers::shell::handle(
                 sockets.shell,
                 iopub_tx,
+                stdout_handler,
+                stderr_handler,
                 engine_state,
+                stack,
                 format_decl_ids,
                 konst,
+                cell
             )
         })
         .unwrap();

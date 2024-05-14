@@ -16,14 +16,14 @@ use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender
 
 #[derive(Debug, Clone)]
 pub struct Print {
-    iopub: Arc<mpsc::Sender<Multipart>>,
+    iopub: mpsc::Sender<Multipart>,
     format_decl_ids: FormatDeclIds,
     konst: Konst,
 }
 
 impl Print {
     pub fn new(
-        iopub: Arc<mpsc::Sender<Multipart>>,
+        iopub: mpsc::Sender<Multipart>,
         format_decl_ids: FormatDeclIds,
         konst: Konst,
     ) -> Self {

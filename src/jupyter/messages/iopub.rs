@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use derive_more::From;
 use serde::Serialize;
+use strum::AsRefStr;
 
 use super::Header;
 use crate::jupyter::messages::{Message, Metadata};
@@ -9,7 +10,7 @@ use crate::jupyter::messages::{Message, Metadata};
 #[derive(Debug, Serialize, From, Clone)]
 #[serde(untagged)]
 pub enum IopubBroacast {
-    Stream,
+    Stream(Stream),
     DisplayData(DisplayData),
     UpdateDisplayData,
     ExecuteInput,
@@ -23,7 +24,7 @@ pub enum IopubBroacast {
 impl IopubBroacast {
     pub fn msg_type(&self) -> &'static str {
         match self {
-            IopubBroacast::Stream => "stream",
+            IopubBroacast::Stream(_) => "stream",
             IopubBroacast::DisplayData(_) => "display_data",
             IopubBroacast::UpdateDisplayData => "update_display_data",
             IopubBroacast::ExecuteInput => "execute_input",
@@ -34,6 +35,19 @@ impl IopubBroacast {
             IopubBroacast::DebugEvent => "debug_event",
         }
     }
+}
+
+#[derive(Debug, Serialize, Clone, Copy, AsRefStr)]
+#[serde(rename_all = "snake_case")]
+pub enum StreamName {
+    Stdout,
+    Stderr
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct Stream {
+    pub name: StreamName,
+    pub text: String
 }
 
 #[derive(Debug, Serialize, Clone)]

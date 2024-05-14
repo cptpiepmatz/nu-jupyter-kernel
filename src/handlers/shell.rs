@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::fs::File;
+use std::os;
 use std::sync::{mpsc, Arc};
 
 use mime::Mime;
@@ -19,18 +21,22 @@ use crate::nu::konst::Konst;
 use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender};
 use crate::nu::{self, ExecuteError};
 
+use super::stream::StreamHandler;
+
 // TODO: get rid of this static by passing this into the display command
 pub static RENDER_FILTER: Mutex<Option<Mime>> = Mutex::new(Option::None);
 
 pub fn handle(
     socket: Socket,
-    iopub: Arc<mpsc::Sender<Multipart>>,
+    iopub: mpsc::Sender<Multipart>,
+    mut stdout_handler: StreamHandler,
+    mut stderr_handler: StreamHandler,
     mut engine_state: EngineState,
+    mut stack: Stack,
     format_decl_ids: FormatDeclIds,
     konst: Konst,
+    mut cell: Cell
 ) {
-    let mut stack = Stack::new();
-    let mut cell = Cell::new();
     loop {
         let message = match Message::recv(&socket) {
             Err(_) => {
@@ -43,6 +49,8 @@ pub fn handle(
         let mut ctx = HandlerContext {
             socket: &socket,
             iopub: &iopub,
+            stdout_handler: &mut stdout_handler,
+            stderr_handler: &mut stderr_handler,
             engine_state: &mut engine_state,
             format_decl_ids,
             konst,
@@ -63,9 +71,11 @@ pub fn handle(
     }
 }
 
-struct HandlerContext<'so, 'io, 'es, 'st, 'c, 'm> {
+struct HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm> {
     socket: &'so Socket,
     iopub: &'io mpsc::Sender<Multipart>,
+    stdout_handler: &'soh mut StreamHandler,
+    stderr_handler: &'seh mut StreamHandler,
     engine_state: &'es mut EngineState,
     format_decl_ids: FormatDeclIds,
     konst: Konst,
@@ -104,14 +114,14 @@ fn handle_kernel_info_request(ctx: &HandlerContext) {
 ///
 /// Used to keep track of the execution counter and retry attempts for the same
 /// cell.
-struct Cell {
+pub struct Cell {
     execution_counter: usize,
     retry_counter: usize,
 }
 
 impl Cell {
     /// Construct a new Cell.
-    const fn new() -> Self {
+    pub const fn new() -> Self {
         Cell {
             execution_counter: 1,
             retry_counter: 1,
@@ -122,7 +132,7 @@ impl Cell {
     ///
     /// This method increases the retry counter each time it is called,
     /// indicating a new attempt on the same cell.
-    fn next_name(&mut self) -> String {
+    pub fn next_name(&mut self) -> String {
         let name = format!("cell[{}]#{}", self.execution_counter, self.retry_counter);
         self.retry_counter += 1;
         name
@@ -134,7 +144,7 @@ impl Cell {
     /// successful execution. This function increments the counter and resets
     /// the retry counter, indicating a new cell execution. It returns the
     /// previous execution counter.
-    fn success(&mut self) -> usize {
+    pub fn success(&mut self) -> usize {
         let current_execution_counter = self.execution_counter;
         self.execution_counter += 1;
         self.retry_counter = 1;
@@ -157,6 +167,8 @@ fn handle_execute_request(ctx: &mut HandlerContext, request: &ExecuteRequest) {
     let cell_name = ctx.cell.next_name();
     ctx.konst
         .update(ctx.stack, cell_name.clone(), ctx.message.clone());
+    ctx.stdout_handler.update_reply(ctx.message.zmq_identities.clone(), ctx.message.header.clone());
+    ctx.stderr_handler.update_reply(ctx.message.zmq_identities.clone(), ctx.message.header.clone());
     match nu::execute(code, ctx.engine_state, ctx.stack, &cell_name) {
         Ok(data) => handle_execute_results(ctx, msg_type, data),
         Err(error) => handle_execute_error(ctx, msg_type, error),
