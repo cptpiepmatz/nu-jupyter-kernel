@@ -139,9 +139,13 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
     };
     let engine_state = add_jupyter_command_context(engine_state, ctx);
 
-    let (stdout_handler, stdout_file) = StreamHandler::start(iopub::StreamName::Stdout, iopub_tx.clone()).unwrap();
-    let (stderr_handler, stderr_file) = StreamHandler::start(iopub::StreamName::Stderr, iopub_tx.clone()).unwrap();
-    let stack = Stack::new().stdout_file(stdout_file).stderr_file(stderr_file);
+    let (stdout_handler, stdout_file) =
+        StreamHandler::start(iopub::StreamName::Stdout, iopub_tx.clone()).unwrap();
+    let (stderr_handler, stderr_file) =
+        StreamHandler::start(iopub::StreamName::Stderr, iopub_tx.clone()).unwrap();
+    let stack = Stack::new()
+        .stdout_file(stdout_file)
+        .stderr_file(stderr_file);
 
     let cell = Cell::new();
 
@@ -165,7 +169,7 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
                 stack,
                 format_decl_ids,
                 konst,
-                cell
+                cell,
             )
         })
         .unwrap();

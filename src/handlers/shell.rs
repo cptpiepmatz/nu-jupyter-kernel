@@ -10,6 +10,7 @@ use parking_lot::Mutex;
 use serde_json::json;
 use zmq::Socket;
 
+use super::stream::StreamHandler;
 use crate::jupyter::messages::iopub::{self, ExecuteResult, IopubBroacast, Status};
 use crate::jupyter::messages::multipart::Multipart;
 use crate::jupyter::messages::shell::{
@@ -20,8 +21,6 @@ use crate::nu::commands::external::External;
 use crate::nu::konst::Konst;
 use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender};
 use crate::nu::{self, ExecuteError};
-
-use super::stream::StreamHandler;
 
 // TODO: get rid of this static by passing this into the display command
 pub static RENDER_FILTER: Mutex<Option<Mime>> = Mutex::new(Option::None);
@@ -35,7 +34,7 @@ pub fn handle(
     mut stack: Stack,
     format_decl_ids: FormatDeclIds,
     konst: Konst,
-    mut cell: Cell
+    mut cell: Cell,
 ) {
     loop {
         let message = match Message::recv(&socket) {
@@ -167,8 +166,14 @@ fn handle_execute_request(ctx: &mut HandlerContext, request: &ExecuteRequest) {
     let cell_name = ctx.cell.next_name();
     ctx.konst
         .update(ctx.stack, cell_name.clone(), ctx.message.clone());
-    ctx.stdout_handler.update_reply(ctx.message.zmq_identities.clone(), ctx.message.header.clone());
-    ctx.stderr_handler.update_reply(ctx.message.zmq_identities.clone(), ctx.message.header.clone());
+    ctx.stdout_handler.update_reply(
+        ctx.message.zmq_identities.clone(),
+        ctx.message.header.clone(),
+    );
+    ctx.stderr_handler.update_reply(
+        ctx.message.zmq_identities.clone(),
+        ctx.message.header.clone(),
+    );
     match nu::execute(code, ctx.engine_state, ctx.stack, &cell_name) {
         Ok(data) => handle_execute_results(ctx, msg_type, data),
         Err(error) => handle_execute_error(ctx, msg_type, error),

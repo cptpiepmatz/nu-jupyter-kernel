@@ -41,13 +41,13 @@ impl IopubBroacast {
 #[serde(rename_all = "snake_case")]
 pub enum StreamName {
     Stdout,
-    Stderr
+    Stderr,
 }
 
 #[derive(Debug, Serialize, Clone)]
 pub struct Stream {
     pub name: StreamName,
-    pub text: String
+    pub text: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
