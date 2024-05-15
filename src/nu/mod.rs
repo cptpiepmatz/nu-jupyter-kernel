@@ -1,9 +1,10 @@
 use std::env;
 use std::fmt::Debug;
+use std::os::windows::process;
 
 use nu_protocol::debugger::WithoutDebug;
-use nu_protocol::engine::{EngineState, Stack, StateDelta, StateWorkingSet};
-use nu_protocol::{ParseError, PipelineData, ShellError, Span, Value};
+use nu_protocol::engine::{self, EngineState, Stack, StateDelta, StateWorkingSet};
+use nu_protocol::{ParseError, PipelineData, ShellError, Span, Value, NU_VARIABLE_ID};
 use thiserror::Error;
 
 pub mod commands;
@@ -17,6 +18,7 @@ pub fn initial_engine_state() -> EngineState {
     let engine_state = nu_command::add_shell_command_context(engine_state);
     let engine_state = nu_cmd_extra::add_extra_command_context(engine_state);
     let engine_state = add_env_context(engine_state);
+    let engine_state = configure_engine_state(engine_state);
 
     // this doesn't add the jupyter context, as they need more context
 
@@ -29,6 +31,29 @@ fn add_env_context(mut engine_state: EngineState) -> EngineState {
             val: current_dir.to_string_lossy().to_string(),
             internal_span: Span::unknown(),
         });
+    }
+
+    engine_state
+}
+
+fn configure_engine_state(mut engine_state: EngineState) -> EngineState {
+    let mut config_dir = env::current_dir().unwrap();
+    config_dir.push(".nu");
+    
+    engine_state.history_enabled = false;
+    engine_state.is_interactive = false;
+    engine_state.is_login = false;
+    engine_state.plugin_path = Some(config_dir.join("plugin.msgpackz"));
+    engine_state.set_config_path("config-path", config_dir.join("config.nu"));
+    engine_state.set_config_path("env-path", config_dir.join("env.nu"));
+
+    let config_home_env = "XDG_CONFIG_HOME";
+    let xdg_config_home = env::var(config_home_env).ok();
+    env::set_var(config_home_env, config_dir);
+    engine_state.generate_nu_constant();
+    match xdg_config_home {
+        Some(var) => env::set_var(config_home_env, var),
+        None => env::remove_var(config_home_env)
     }
 
     engine_state

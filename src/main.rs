@@ -126,7 +126,6 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
     DIGESTER.key_init(&connection_file.key).unwrap();
 
     let mut engine_state = nu::initial_engine_state();
-    engine_state.generate_nu_constant();
     let format_decl_ids = FormatDeclIds::find(&engine_state).unwrap();
     nu::commands::hide_incompatible_commands(&mut engine_state).unwrap();
     let konst = Konst::register(&mut engine_state).unwrap();
