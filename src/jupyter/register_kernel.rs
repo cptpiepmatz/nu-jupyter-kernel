@@ -50,7 +50,16 @@ fn kernel_path(location: RegisterLocation) -> impl AsRef<Path> {
         RegisterLocation::System => path.push("/usr/local/share/jupyter/kernels"),
     }
 
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    match location {
+        RegisterLocation::User => {
+            path.push(dirs::home_dir().expect("defined on macos"));
+            path.push("Library/Jupyter/kernels")
+        }
+        RegisterLocation::System => path.push("/usr/local/share/jupyter/kernels"),
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
     panic!(
         "Your target os ({}) doesn't support `register`",
         env::consts::OS

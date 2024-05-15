@@ -72,7 +72,7 @@ impl StreamHandler {
         #[cfg(windows)]
         let file: File = os::windows::io::OwnedHandle::from(pipe_writer).into();
         #[cfg(unix)]
-        let file: File = os::unix::io::OwnedFd::From(pipe_writer).into();
+        let file: File = os::unix::io::OwnedFd::from(pipe_writer).into();
 
         Ok((
             Self {
