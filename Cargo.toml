@@ -10,10 +10,11 @@ protocol_version = "5.4"
 # nu
 nu-cmd-extra = { version = "0.93.1", path = "../nushell/crates/nu-cmd-extra" }
 nu-cmd-lang = { version = "0.93.1", path = "../nushell/crates/nu-cmd-lang" }
-nu-command = { version = "0.93.1", path = "../nushell/crates/nu-command" }
+nu-cmd-plugin = { version = "0.93.1", path = "../nushell/crates/nu-cmd-plugin" }
+nu-command = { version = "0.93.1", path = "../nushell/crates/nu-command", features = ["plugin"] }
 nu-engine = { version = "0.93.1", path = "../nushell/crates/nu-engine" }
-nu-parser = { version = "0.93.1", path = "../nushell/crates/nu-parser" }
-nu-protocol = { version = "0.93.1", path = "../nushell/crates/nu-protocol" }
+nu-parser = { version = "0.93.1", path = "../nushell/crates/nu-parser", features = ["plugin"] }
+nu-protocol = { version = "0.93.1", path = "../nushell/crates/nu-protocol", features = ["plugin"] }
 
 # Cryptography and Security
 hmac = "0.12.1"
@@ -58,4 +59,3 @@ parking_lot = "0.12.2"
 
 # Miscellaneous
 atomic_enum = "0.3.0"
-

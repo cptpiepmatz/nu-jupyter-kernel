@@ -1,6 +1,7 @@
 use std::env;
 use std::fmt::Debug;
 use std::os::windows::process;
+use std::path::PathBuf;
 
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{self, EngineState, Stack, StateDelta, StateWorkingSet};
@@ -17,6 +18,7 @@ pub fn initial_engine_state() -> EngineState {
     let engine_state = nu_cmd_lang::create_default_context();
     let engine_state = nu_command::add_shell_command_context(engine_state);
     let engine_state = nu_cmd_extra::add_extra_command_context(engine_state);
+    let engine_state = nu_cmd_plugin::add_plugin_command_context(engine_state);
     let engine_state = add_env_context(engine_state);
     let engine_state = configure_engine_state(engine_state);
 
@@ -39,21 +41,20 @@ fn add_env_context(mut engine_state: EngineState) -> EngineState {
 fn configure_engine_state(mut engine_state: EngineState) -> EngineState {
     let mut config_dir = env::current_dir().unwrap();
     config_dir.push(".nu");
-    
+
     engine_state.history_enabled = false;
     engine_state.is_interactive = false;
     engine_state.is_login = false;
-    engine_state.plugin_path = Some(config_dir.join("plugin.msgpackz"));
     engine_state.set_config_path("config-path", config_dir.join("config.nu"));
     engine_state.set_config_path("env-path", config_dir.join("env.nu"));
 
-    let config_home_env = "XDG_CONFIG_HOME";
-    let xdg_config_home = env::var(config_home_env).ok();
-    env::set_var(config_home_env, config_dir);
     engine_state.generate_nu_constant();
-    match xdg_config_home {
-        Some(var) => env::set_var(config_home_env, var),
-        None => env::remove_var(config_home_env)
+
+    if let Some(ref v) = engine_state.get_var(NU_VARIABLE_ID).const_val {
+        engine_state.plugin_path = v
+            .get_data_by_key("plugin-path")
+            .map(|v| v.as_str().ok().map(PathBuf::from))
+            .flatten();
     }
 
     engine_state
@@ -114,11 +115,14 @@ pub fn execute(
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io, os::windows::io::OwnedHandle, thread};
+    use std::fs::File;
+    use std::os::windows::io::OwnedHandle;
+    use std::{io, thread};
 
     use nu_protocol::engine::Stack;
 
-    use super::{commands::external::External, initial_engine_state};
+    use super::commands::external::External;
+    use super::initial_engine_state;
 
     #[test]
     fn test_execute() {
@@ -130,7 +134,7 @@ mod tests {
             io::copy(&mut reader, &mut stdout).unwrap();
         });
         let mut stack = Stack::new().stdout_file(OwnedHandle::from(writer).into());
-        let code = "rg -h; ignore";
+        let code = "plugin add nu_plugin_polars";
         let name = concat!(module_path!(), "::test_execute");
         eprintln!("will execute {code:?} via {name:?}");
         super::execute(code, &mut engine_state, &mut stack, name).unwrap();
