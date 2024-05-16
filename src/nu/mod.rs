@@ -1,6 +1,5 @@
 use std::env;
 use std::fmt::Debug;
-use std::os::windows::process;
 use std::path::PathBuf;
 
 use nu_protocol::debugger::WithoutDebug;
@@ -113,7 +112,7 @@ pub fn execute(
     Ok(res)
 }
 
-#[cfg(test)]
+#[cfg(all(test, windows))]
 mod tests {
     use std::fs::File;
     use std::os::windows::io::OwnedHandle;
