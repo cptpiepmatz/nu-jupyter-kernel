@@ -24,24 +24,25 @@
 </p>
 
 ## About
-`nu-jupyter-kernel` is a work-in-progress Jupyter kernel specifically for 
-executing Nu pipelines. 
+`nu-jupyter-kernel` is a work-in-progress [Jupyter](https://jupyter.org) kernel
+specifically for executing Nu pipelines. 
 Unlike most Jupyter kernels that rely on Python, this raw kernel directly 
 implements the Jupyter messaging protocol, allowing direct communication without 
 Python intermediaries. 
-It's designed to work seamlessly with Nu, the language utilized by Nushell — 
+It's designed to work seamlessly with Nu, the language utilized by 
+[Nushell](https://github.com/nushell/nushell) — 
 a modern shell that emphasizes structured data.
 
 ## Features
 The `nu-jupyter-kernel` already has several features making it a useful kernel 
 for Jupyter notebooks:
 
-- **Execution of nu code:** 
-  Directly run nu pipeplines within your Jupyter notebook.
+- **Execution of Nu code:** 
+  Directly run Nu pipeplines within your Jupyter notebook.
 
 - **State sharing across cells:** 
   Unlike isolated script execution, the kernel maintains state across different 
-  cells using the nu-engine.
+  cells using the `nu-engine`.
 
 - **Rich Data Rendering:** 
   Outputs are dynamically rendered in various data types wherever applicable.
@@ -64,7 +65,7 @@ for Jupyter notebooks:
   utilized as in a typical Nushell environment.
 
 ## Design Goals
-The design of the *nu-jupyter-kernel* focuses on the following goals:
+The design of the `nu-jupyter-kernel` focuses on the following goals:
 
 - **Reproducibility:**
   Notebooks should be as reproducible as possible by default.
@@ -73,7 +74,7 @@ The design of the *nu-jupyter-kernel* focuses on the following goals:
   Make all dependencies clear and obvious to the user.
 
 - **Script-like behavior:** 
-  The kernel behaves largely like a regular nu script to ensure familiarity.
+  The kernel behaves largely like a regular Nu script to ensure familiarity.
 
 - **Clear Feature Distinctions:** 
   Clearly indicating any deviations or limitations compared to standard Nu 
