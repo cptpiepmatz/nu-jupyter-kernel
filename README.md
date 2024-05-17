@@ -19,7 +19,7 @@
   </a>
   <img alt="Jupyter Protocol Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=package.metadata.jupyter.protocol_version&prefix=v&style=for-the-badge&label=Jupyter%20Protocol%20Version&color=%23F37726"/>
   <a href="https://github.com/cptpiepmatz/nu-jupyter-kernel/blob/main/LICENSE">
-    <img alt="License" src="https://img.shields.io/crates/l/nu-jupyter-kernel?style=for-the-badge"/>  
+    <img alt="License" src="https://img.shields.io/github/license/cptpiepmatz/nu-jupyter-kernel?style=for-the-badge"/>  
   </a>
 </p>
 
