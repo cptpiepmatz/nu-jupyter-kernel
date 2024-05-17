@@ -78,9 +78,6 @@ fn kernel_manifest() -> serde_json::Value {
         "language": "nushell",
         "interrupt_mode": "signal", // TODO: make this "message" later
         "env": {},
-        "metadata": {
-            "nu_version": CARGO_TOML.dependencies.nu_engine.version,
-            "version": CARGO_TOML.package.version
-        }
+        "metadata": {}
     })
 }
