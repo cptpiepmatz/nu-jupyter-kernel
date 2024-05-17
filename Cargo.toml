@@ -2,6 +2,12 @@
 name = "nu-jupyter-kernel"
 version = "0.1.0-wip"
 edition = "2021"
+description = "A wip jupyter raw kernel for nu"
+repository = "https://github.com/cptpiepmatz/nu-jupyter-kernel"
+license = "MIT"
+keywords = ["jupyter-kernel", "jupyter", "nushell"]
+categories = ["science"]
+publish = false
 
 [package.metadata.jupyter]
 protocol_version = "5.4"
