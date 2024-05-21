@@ -32,16 +32,9 @@ impl Command for Nuju {
         call: &Call,
         _input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
-        Ok(Value::string(
-            get_full_help(
-                &Nuju.signature(),
-                &Nuju.examples(),
-                engine_state,
-                stack,
-                self.is_parser_keyword(),
-            ),
-            call.head,
+        Ok(
+            Value::string(get_full_help(&Nuju, engine_state, stack), call.head)
+                .into_pipeline_data(),
         )
-        .into_pipeline_data())
     }
 }

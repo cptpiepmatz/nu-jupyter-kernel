@@ -127,6 +127,7 @@ impl Command for Print {
 
         let render: StringifiedPipelineRender =
             PipelineRender::render(to_render, engine_state, stack, self.format_decl_ids, mime)
+                .unwrap() // TODO: handle this better
                 .into();
 
         let display_data = DisplayData {

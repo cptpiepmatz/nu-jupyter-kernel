@@ -5,7 +5,8 @@ use nu_command::{ToCsv, ToJson, ToMd};
 use nu_protocol::ast::{Argument, Call};
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{Command, EngineState, Stack};
-use nu_protocol::{PipelineData, Span, Spanned, Value};
+use nu_protocol::{PipelineData, ShellError, Span, Spanned, Value};
+use thiserror::Error;
 
 macro_rules! create_format_decl_ids {
     ($($field:ident : $search_str:expr),+ $(,)?) => {
@@ -58,6 +59,22 @@ fn flag(flag: impl Into<String>) -> Argument {
     ))
 }
 
+#[derive(Debug, Error)]
+pub enum RenderError {
+    #[error("could not convert pipeline data into value: {0}")]
+    IntoValue(#[source] ShellError),
+
+    #[error("could not render plain text output: {0}")]
+    NoText(#[source] ShellError),
+}
+
+#[derive(Debug)]
+enum InternalRenderError {
+    Eval(ShellError),
+    IntoValue(ShellError),
+    NoString(ShellError),
+}
+
 #[derive(Debug)]
 pub struct PipelineRender {
     pub data: HashMap<Mime, String>,
@@ -71,9 +88,7 @@ impl PipelineRender {
         decl_id: usize,
         engine_state: &EngineState,
         stack: &mut Stack,
-        data: &mut HashMap<Mime, String>,
-        mime: Mime,
-    ) -> bool {
+    ) -> Result<Option<String>, InternalRenderError> {
         let ty = value.get_type();
         let may = to_cmd
             .signature()
@@ -81,17 +96,11 @@ impl PipelineRender {
             .iter()
             .map(|(input, _)| input)
             .any(|input| ty.is_subtype(input));
+
         match may {
-            true => Self::render_via_call(
-                value.clone(),
-                decl_id,
-                engine_state,
-                stack,
-                data,
-                vec![],
-                mime,
-            ),
-            false => false,
+            false => Ok(None),
+            true => Self::render_via_call(value.clone(), decl_id, engine_state, stack, vec![])
+                .map(Option::Some),
         }
     }
 
@@ -100,10 +109,8 @@ impl PipelineRender {
         decl_id: usize,
         engine_state: &EngineState,
         stack: &mut Stack,
-        data: &mut HashMap<Mime, String>,
         arguments: Vec<Argument>,
-        mime: Mime,
-    ) -> bool {
+    ) -> Result<String, InternalRenderError> {
         let pipeline_data = PipelineData::Value(value, None);
         let call = Call {
             decl_id,
@@ -112,16 +119,14 @@ impl PipelineRender {
             parser_info: HashMap::new(),
         };
         let formatted =
-            match nu_engine::eval_call::<WithoutDebug>(engine_state, stack, &call, pipeline_data) {
-                Err(_) => return false,
-                Ok(formatted) => formatted,
-            };
+            nu_engine::eval_call::<WithoutDebug>(engine_state, stack, &call, pipeline_data)
+                .map_err(InternalRenderError::Eval)?;
         let formatted = formatted
             .into_value(Span::unknown())
+            .map_err(InternalRenderError::IntoValue)?
             .into_string()
-            .expect("formatted to string");
-        data.insert(mime, formatted);
-        true
+            .map_err(InternalRenderError::NoString)?;
+        Ok(formatted)
     }
 
     pub fn render(
@@ -130,77 +135,77 @@ impl PipelineRender {
         stack: &mut Stack,
         format_decl_ids: FormatDeclIds,
         filter: Option<Mime>,
-    ) -> PipelineRender {
+    ) -> Result<PipelineRender, RenderError> {
         let mut data = HashMap::new();
         let metadata = HashMap::new();
-        let value = pipeline_data.into_value(Span::unknown());
+        let value = pipeline_data
+            .into_value(Span::unknown())
+            .map_err(RenderError::IntoValue)?;
         let ty = value.get_type();
 
         // `to text` has any input type, no need to check
         // also we always need to provide plain text output
-        Self::render_via_call(
+        match Self::render_via_call(
             value.clone(),
             format_decl_ids.to_text,
             engine_state,
             stack,
-            &mut data,
             vec![],
-            mime::TEXT_PLAIN,
-        );
+        ) {
+            Ok(s) => data.insert(mime::TEXT_PLAIN, s),
+            Err(
+                InternalRenderError::Eval(e) |
+                InternalRenderError::IntoValue(e) |
+                InternalRenderError::NoString(e),
+            ) => return Err(RenderError::NoText(e)),
+        };
 
         let match_filter = |mime| filter.is_none() || filter == Some(mime);
 
         // call directly as `ToHtml` is private
         if match_filter(mime::TEXT_HTML) {
-            Self::render_via_call(
+            match Self::render_via_call(
                 value.clone(),
                 format_decl_ids.to_html,
                 engine_state,
                 stack,
-                &mut data,
                 vec![flag("partial"), flag("html-color")],
-                mime::TEXT_HTML,
-            );
+            ) {
+                Ok(s) => data.insert(mime::TEXT_HTML, s),
+                Err(InternalRenderError::Eval(_)) => None,
+                Err(_) => None, // TODO: print the error
+            };
         }
 
         if match_filter(mime::TEXT_CSV) {
-            Self::render_via_cmd(
-                &value,
-                ToCsv,
-                format_decl_ids.to_csv,
-                engine_state,
-                stack,
-                &mut data,
-                mime::TEXT_CSV,
-            );
+            match Self::render_via_cmd(&value, ToCsv, format_decl_ids.to_csv, engine_state, stack) {
+                Ok(Some(s)) => data.insert(mime::TEXT_CSV, s),
+                Ok(None) | Err(InternalRenderError::Eval(_)) => None,
+                Err(_) => None, // TODO: print the error
+            };
         }
+
         if match_filter(mime::APPLICATION_JSON) {
-            Self::render_via_cmd(
-                &value,
-                ToJson,
-                format_decl_ids.to_json,
-                engine_state,
-                stack,
-                &mut data,
-                mime::APPLICATION_JSON,
-            );
+            match Self::render_via_cmd(&value, ToJson, format_decl_ids.to_json, engine_state, stack)
+            {
+                Ok(Some(s)) => data.insert(mime::APPLICATION_JSON, s),
+                Ok(None) | Err(InternalRenderError::Eval(_)) => None,
+                Err(_) => None, // TODO: print the error
+            };
         }
+
         let md_mime: mime::Mime = "text/markdown"
             .parse()
             .expect("'text/markdown' is valid mime type");
         if match_filter(md_mime.clone()) {
-            Self::render_via_cmd(
-                &value,
-                ToMd,
-                format_decl_ids.to_md,
-                engine_state,
-                stack,
-                &mut data,
-                md_mime,
-            );
+            match Self::render_via_cmd(&value, ToMd, format_decl_ids.to_md, engine_state, stack) {
+                Ok(Some(s)) => data.insert(md_mime, s),
+                Ok(None) | Err(InternalRenderError::Eval(_)) => None,
+                Err(_) => None, // TODO: print the error
+            };
         }
 
-        PipelineRender { data, metadata }
+        Ok(PipelineRender { data, metadata })
     }
 }
 

@@ -243,6 +243,7 @@ fn handle_execute_results(ctx: &mut HandlerContext, msg_type: &str, pipeline_dat
             ctx.format_decl_ids,
             render_filter.take(),
         )
+        .unwrap() // TODO: replace this with some actual handling
         .into();
 
         let execute_result = ExecuteResult {
