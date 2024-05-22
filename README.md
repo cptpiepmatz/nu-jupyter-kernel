@@ -33,6 +33,8 @@ It's designed to work seamlessly with Nu, the language utilized by
 [Nushell](https://github.com/nushell/nushell) — 
 a modern shell that emphasizes structured data.
 
+![screenshot](media/screenshot.png)
+
 ## Features
 The `nu-jupyter-kernel` already has several features making it a useful kernel 
 for Jupyter notebooks:
