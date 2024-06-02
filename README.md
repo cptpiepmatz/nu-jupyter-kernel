@@ -90,13 +90,31 @@ follow the instructions in the Building section below.
 
 ## Usage
 
+## Building
+To build the latest kernel, you need to have the nushell repository cloned next 
+to the kernel repository:
+
+```sh
+# Clone the repositories
+git clone https://github.com/cptpiepmatz/nu-jupyter-kernel.git
+git clone https://github.com/nushell/nushell.git
+
+# Change directory
+cd nu-jupyter-kernel
+
+# Build the kernel
+cargo build
+```
+
+To build the kernel you need to have the rust toolchain installed, check the [installation guide on rust's official website](https://www.rust-lang.org/tools/install).
+
 ### Registering the Kernel
 After installation, you must register the kernel to make it available within 
 Jupyter environments. 
 This can be done through the command:
 
 ```sh
-nu-jupyter-kernel register
+./target/debug/nu-jupyter-kernel register
 ```
 
 You can specify the registration scope using `--user` for the current user 
@@ -122,24 +140,6 @@ Kernel binary updates do not require re-registration unless the binary's
 location changes. 
 For developers, keep in mind that running `cargo run register` and 
 `cargo run --release register` will result in different binary locations.
-
-## Building
-To build the latest kernel, you need to have the nushell repository cloned next 
-to the kernel repository:
-
-```sh
-# Clone the repositories
-git clone https://github.com/cptpiepmatz/nu-jupyter-kernel.git
-git clone https://github.com/nushell/nushell.git
-
-# Change directory
-cd nu-jupyter-kernel
-
-# Build the kernel
-cargo build
-```
-
-To build the kernel you need to have the rust toolchain installed, check the [installation guide on rust's official website](https://www.rust-lang.org/tools/install).
 
 ## Contributing
 Contributions are welcome! 
