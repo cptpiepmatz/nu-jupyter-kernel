@@ -88,8 +88,6 @@ source.
 Future versions will provide simpler installation methods, but for now, please 
 follow the instructions in the Building section below.
 
-## Usage
-
 ## Building
 To build the latest kernel, you need to have the nushell repository cloned next 
 to the kernel repository:
@@ -108,6 +106,7 @@ cargo build
 
 To build the kernel you need to have the rust toolchain installed, check the [installation guide on rust's official website](https://www.rust-lang.org/tools/install).
 
+## Usage
 ### Registering the Kernel
 After installation, you must register the kernel to make it available within 
 Jupyter environments. 
