@@ -52,8 +52,7 @@ fn configure_engine_state(mut engine_state: EngineState) -> EngineState {
     if let Some(ref v) = engine_state.get_var(NU_VARIABLE_ID).const_val {
         engine_state.plugin_path = v
             .get_data_by_key("plugin-path")
-            .map(|v| v.as_str().ok().map(PathBuf::from))
-            .flatten();
+            .and_then(|v| v.as_str().ok().map(PathBuf::from));
     }
 
     engine_state

@@ -268,7 +268,7 @@ impl From<KonstDataMessage> for Value {
             "zmq_identities" => Value::test_list(data
                 .zmq_identities
                 .into_iter()
-                .map(|zmq_id| Value::test_binary(zmq_id))
+                .map(Value::test_binary)
                 .collect()
             ),
             "header" => Value::test_record(record! {
