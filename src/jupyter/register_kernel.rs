@@ -4,7 +4,6 @@ use std::{env, fs};
 use clap::ValueEnum;
 use serde_json::json;
 
-use crate::CARGO_TOML;
 
 #[derive(Debug, ValueEnum, Clone, Copy)]
 pub enum RegisterLocation {

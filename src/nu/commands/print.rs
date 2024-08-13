@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 
-use bytes::Bytes;
 use mime_guess::MimeGuess;
 use nu_engine::CallExt;
 use nu_protocol::engine::Command;

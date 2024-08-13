@@ -1,10 +1,9 @@
 use std::fs::File;
 use std::io::{self, Read};
-use std::marker::PhantomData;
 use std::os;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
-use std::thread::{self, JoinHandle};
+use std::thread::{self};
 
 use bytes::Bytes;
 use parking_lot::Mutex;

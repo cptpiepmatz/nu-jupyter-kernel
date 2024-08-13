@@ -2,10 +2,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::sync::{mpsc, Arc, OnceLock};
-use std::{os, panic, process, thread};
+use std::sync::mpsc;
+use std::{panic, process, thread};
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
@@ -13,7 +12,6 @@ use handlers::shell::Cell;
 use handlers::stream::StreamHandler;
 use jupyter::connection_file::ConnectionFile;
 use jupyter::messages::iopub;
-use jupyter::messages::multipart::Multipart;
 use jupyter::register_kernel::{register_kernel, RegisterLocation};
 use nu::commands::{add_jupyter_command_context, JupyterCommandContext};
 use nu::konst::Konst;

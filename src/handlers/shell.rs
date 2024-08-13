@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::os;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 
 use mime::Mime;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};

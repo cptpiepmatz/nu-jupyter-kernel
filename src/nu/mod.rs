@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 
 use nu_protocol::debugger::WithoutDebug;
-use nu_protocol::engine::{self, EngineState, Stack, StateDelta, StateWorkingSet};
+use nu_protocol::engine::{EngineState, Stack, StateDelta, StateWorkingSet};
 use nu_protocol::{ParseError, PipelineData, ShellError, Span, Value, NU_VARIABLE_ID};
 use thiserror::Error;
 
@@ -114,7 +114,7 @@ pub fn execute(
 
 #[cfg(all(test, windows))]
 mod tests {
-    use std::fs::File;
+    
     use std::os::windows::io::OwnedHandle;
     use std::{io, thread};
 
