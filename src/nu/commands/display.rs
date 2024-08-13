@@ -49,12 +49,10 @@ impl Command for Display {
         &self,
         engine_state: &nu_protocol::engine::EngineState,
         stack: &mut nu_protocol::engine::Stack,
-        call: &nu_protocol::ast::Call,
+        call: &nu_protocol::engine::Call,
         input: nu_protocol::PipelineData,
     ) -> Result<nu_protocol::PipelineData, ShellError> {
-        let format_expr =
-            call.positional_iter()
-                .next()
+        let format_expr = call.positional_nth(stack, 0)
                 .ok_or_else(|| ShellError::MissingParameter {
                     param_name: String::from("format"),
                     span: call.arguments_span(),

@@ -69,7 +69,7 @@ impl Command for Print {
         &self,
         engine_state: &nu_protocol::engine::EngineState,
         stack: &mut nu_protocol::engine::Stack,
-        call: &nu_protocol::ast::Call,
+        call: &nu_protocol::engine::Call,
         input: nu_protocol::PipelineData,
     ) -> Result<nu_protocol::PipelineData, ShellError> {
         let arg: Option<Value> = call.opt(engine_state, stack, 0)?;

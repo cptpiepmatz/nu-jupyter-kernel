@@ -14,13 +14,13 @@ protocol_version = "5.4"
 
 [dependencies]
 # nu
-nu-cmd-extra = { version = "0.94", path = "../nushell/crates/nu-cmd-extra" }
-nu-cmd-lang = { version = "0.94", path = "../nushell/crates/nu-cmd-lang" }
-nu-cmd-plugin = { version = "0.94", path = "../nushell/crates/nu-cmd-plugin" }
-nu-command = { version = "0.94", path = "../nushell/crates/nu-command", features = ["plugin"] }
-nu-engine = { version = "0.94", path = "../nushell/crates/nu-engine" }
-nu-parser = { version = "0.94", path = "../nushell/crates/nu-parser", features = ["plugin"] }
-nu-protocol = { version = "0.94", path = "../nushell/crates/nu-protocol", features = ["plugin"] }
+nu-cmd-extra = { version = "0.96" }
+nu-cmd-lang = { version = "0.96" }
+nu-cmd-plugin = { version = "0.96" }
+nu-command = { version = "0.96", features = ["plugin"] }
+nu-engine = { version = "0.96" }
+nu-parser = { version = "0.96", features = ["plugin"] }
+nu-protocol = { version = "0.96", features = ["plugin"] }
 
 # Cryptography and Security
 hmac = "0.12.1"

@@ -1,8 +1,7 @@
 use std::sync::atomic::Ordering;
 
 use atomic_enum::atomic_enum;
-use nu_protocol::ast::Call;
-use nu_protocol::engine::{Command, EngineState, Stack, StateWorkingSet};
+use nu_protocol::engine::{Call, Command, EngineState, Stack, StateWorkingSet};
 use nu_protocol::{PipelineData, ShellError, Signature, Span, Type, Value};
 
 use super::COMMANDS_TOML;
