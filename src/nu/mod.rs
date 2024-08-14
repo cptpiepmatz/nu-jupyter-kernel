@@ -113,7 +113,7 @@ pub fn execute(
 
 #[cfg(all(test, windows))]
 mod tests {
-    
+
     use std::os::windows::io::OwnedHandle;
     use std::{io, thread};
 

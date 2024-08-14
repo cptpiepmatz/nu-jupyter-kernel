@@ -52,7 +52,8 @@ impl Command for Display {
         call: &nu_protocol::engine::Call,
         input: nu_protocol::PipelineData,
     ) -> Result<nu_protocol::PipelineData, ShellError> {
-        let format_expr = call.positional_nth(stack, 0)
+        let format_expr =
+            call.positional_nth(stack, 0)
                 .ok_or_else(|| ShellError::MissingParameter {
                     param_name: String::from("format"),
                     span: call.arguments_span(),

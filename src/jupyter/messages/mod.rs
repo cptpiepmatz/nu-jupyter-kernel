@@ -5,6 +5,7 @@ use bytes::Bytes;
 use chrono::Utc;
 use derive_more::From;
 use hmac::{Hmac, Mac};
+use nu_protocol::{FromValue, IntoValue};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::digest::InvalidLength;
@@ -55,7 +56,7 @@ impl Digester {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, IntoValue, FromValue)]
 pub struct Header {
     pub msg_id: String,
     pub session: String,
