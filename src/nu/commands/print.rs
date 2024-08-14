@@ -1,36 +1,21 @@
 use std::collections::HashMap;
-use std::sync::mpsc;
 
 use mime_guess::MimeGuess;
 use nu_engine::CallExt;
 use nu_protocol::engine::Command;
 use nu_protocol::{FromValue, PipelineData, ShellError, Signature, Span, SyntaxShape, Type, Value};
 
-use super::COMMANDS_TOML;
+use super::{JupyterCommandContext, COMMANDS_TOML};
 use crate::jupyter::messages::iopub::{DisplayData, IopubBroacast};
-use crate::jupyter::messages::multipart::Multipart;
 use crate::jupyter::messages::{Header, Message, Metadata};
-use crate::nu::konst::Konst;
-use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender};
+use crate::nu::render::{PipelineRender, StringifiedPipelineRender};
 
 #[derive(Debug, Clone)]
-pub struct Print {
-    iopub: mpsc::Sender<Multipart>,
-    format_decl_ids: FormatDeclIds,
-    konst: Konst,
-}
+pub struct Print(JupyterCommandContext);
 
 impl Print {
-    pub fn new(
-        iopub: mpsc::Sender<Multipart>,
-        format_decl_ids: FormatDeclIds,
-        konst: Konst,
-    ) -> Self {
-        Self {
-            iopub,
-            format_decl_ids,
-            konst,
-        }
+    pub fn new(ctx: JupyterCommandContext) -> Self {
+        Self(ctx)
     }
 }
 
@@ -125,7 +110,7 @@ impl Command for Print {
             .transpose()?;
 
         let render: StringifiedPipelineRender =
-            PipelineRender::render(to_render, engine_state, stack, self.format_decl_ids, mime)
+            PipelineRender::render(to_render, engine_state, stack, self.0.format_decl_ids, mime)
                 .unwrap() // TODO: handle this better
                 .into();
 
@@ -136,7 +121,7 @@ impl Command for Print {
         };
         let broadcast = IopubBroacast::DisplayData(display_data);
 
-        let konst = self.konst.data(stack, call.head)?;
+        let konst = self.0.konst.data(stack, call.head)?;
         let message = Message {
             zmq_identities: konst.message.zmq_identities,
             header: Header::new(broadcast.msg_type()),
@@ -146,7 +131,10 @@ impl Command for Print {
             buffers: vec![],
         };
 
-        self.iopub.send(message.into_multipart().unwrap()).unwrap();
+        self.0
+            .iopub
+            .send(message.into_multipart().unwrap())
+            .unwrap();
 
         Ok(PipelineData::Empty)
     }

@@ -35,6 +35,7 @@ pub fn category() -> Category {
     Category::Custom("jupyter".to_owned())
 }
 
+#[derive(Debug, Clone)]
 pub struct JupyterCommandContext {
     pub iopub: mpsc::Sender<Multipart>,
     pub format_decl_ids: FormatDeclIds,
@@ -58,7 +59,7 @@ pub fn add_jupyter_command_context(
             command::Nuju,
             external::External,
             display::Display,
-            print::Print::new(ctx.iopub, ctx.format_decl_ids, ctx.konst)
+            print::Print::new(ctx)
         }
 
         working_set.render()
