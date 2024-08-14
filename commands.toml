@@ -44,7 +44,7 @@ flexibility for advanced tasks. By disabling external commands by default,
 notebooks become more portable and less likely to encounter failures when run 
 on different machines."
 """
-search_tems = ["jupyter", "external", "run"]
+search_terms = ["jupyter", "external", "run"]
 
 [print]
 name = "nuju print"

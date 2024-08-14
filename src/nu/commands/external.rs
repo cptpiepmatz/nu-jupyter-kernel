@@ -44,7 +44,7 @@ impl Command for External {
     }
 
     fn search_terms(&self) -> Vec<&str> {
-        COMMANDS_TOML.external.search_tems.into()
+        COMMANDS_TOML.external.search_terms.into()
     }
 
     fn signature(&self) -> Signature {
