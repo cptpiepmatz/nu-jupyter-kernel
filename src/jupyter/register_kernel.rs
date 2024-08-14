@@ -4,7 +4,6 @@ use std::{env, fs};
 use clap::ValueEnum;
 use serde_json::json;
 
-
 #[derive(Debug, ValueEnum, Clone, Copy)]
 pub enum RegisterLocation {
     User,
