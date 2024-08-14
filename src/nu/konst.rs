@@ -75,7 +75,8 @@ pub struct KonstDataMessage {
 
 #[derive(Debug, Clone, IntoValue, FromValue)]
 struct KonstDataMessageDTO {
-    pub zmq_identities: Vec<Vec<u8>>,
+    // FIXME: Vec<u8> doesn't allow loading from list<int>
+    pub zmq_identities: Vec<Vec<u32>>,
     pub header: Header,
     pub parent_header: Option<Header>
 }
@@ -83,7 +84,7 @@ struct KonstDataMessageDTO {
 impl From<KonstDataMessage> for KonstDataMessageDTO {
     fn from(value: KonstDataMessage) -> Self {
         KonstDataMessageDTO {
-            zmq_identities: value.zmq_identities.into_iter().map(|b| b.into_iter().collect()).collect(),
+            zmq_identities: value.zmq_identities.into_iter().map(|b| b.into_iter().map(|n| n as u32).collect()).collect(),
             header: value.header,
             parent_header: value.parent_header
         }
@@ -93,7 +94,7 @@ impl From<KonstDataMessage> for KonstDataMessageDTO {
 impl From<KonstDataMessageDTO> for KonstDataMessage {
     fn from(value: KonstDataMessageDTO) -> Self {
         KonstDataMessage {
-            zmq_identities: value.zmq_identities.into_iter().map(Bytes::from).collect(),
+            zmq_identities: value.zmq_identities.into_iter().map(|b| Bytes::from_iter(b.into_iter().map(|n| n as u8))).collect(),
             header: value.header,
             parent_header: value.parent_header,
         }
