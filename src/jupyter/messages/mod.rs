@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::OnceLock;
 
@@ -11,7 +12,7 @@ use serde_json::json;
 use sha2::digest::InvalidLength;
 use sha2::Sha256;
 use uuid::Uuid;
-use zmq::{Socket, DONTWAIT};
+use zeromq::SocketRecv;
 
 use self::shell::ShellRequest;
 use crate::{Channel, CARGO_TOML};
@@ -121,31 +122,38 @@ static ZMQ_WAIT: i32 = 0;
 
 impl Message<IncomingContent> {
     // TODO: add a real error type here
-    fn recv(socket: &Socket, source: Channel) -> Result<Self, ()> {
+    async fn recv<S: SocketRecv>(socket: &mut S, source: Channel) -> Result<Self, ()> {
+        let mut zmq_message = socket.recv().await.unwrap().into_vec().into_iter();
+        let zmq_message = &mut zmq_message;
+
         let mut zmq_identities = Vec::new();
-        loop {
-            let bytes = socket.recv_bytes(ZMQ_WAIT).unwrap();
-            if &bytes == b"<IDS|MSG>" {
+        while let Some(bytes) = zmq_message.next() {
+            if bytes.deref() == b"<IDS|MSG>" {
                 break;
             }
-            zmq_identities.push(Bytes::from(bytes));
+            zmq_identities.push(bytes.to_owned());
         }
 
-        let signature = socket.recv_string(ZMQ_WAIT).unwrap().unwrap();
+        // TODO: add error handling for this here
+        fn next_string(byte_iter: &mut impl Iterator<Item = Bytes>) -> String {
+            String::from_utf8(byte_iter.next().unwrap().to_vec()).unwrap()
+        }
 
-        let header = socket.recv_string(ZMQ_WAIT).unwrap().unwrap();
+        let signature = next_string(zmq_message);
+
+        let header = next_string(zmq_message);
         let header: Header = serde_json::from_str(&header).unwrap();
 
-        let parent_header = socket.recv_string(ZMQ_WAIT).unwrap().unwrap();
+        let parent_header = next_string(zmq_message);
         let parent_header: Option<Header> = match parent_header.as_str() {
             "{}" => None,
             ph => serde_json::from_str(ph).unwrap(),
         };
 
-        let metadata = socket.recv_string(ZMQ_WAIT).unwrap().unwrap();
+        let metadata = next_string(zmq_message);
         let metadata: Metadata = serde_json::from_str(&metadata).unwrap();
 
-        let content = socket.recv_string(ZMQ_WAIT).unwrap().unwrap();
+        let content = next_string(zmq_message);
         let content = match source {
             Channel::Shell => {
                 IncomingContent::Shell(ShellRequest::parse_variant(&header.msg_type, &content)?)
@@ -154,11 +162,7 @@ impl Message<IncomingContent> {
             Channel::Control => todo!(),
         };
 
-        let buffers: Vec<Bytes> = match socket.recv_multipart(DONTWAIT) {
-            Ok(buffers) => buffers.into_iter().map(Bytes::from).collect(),
-            Err(zmq::Error::EAGAIN) => vec![],
-            Err(_) => todo!(),
-        };
+        let buffers: Vec<Bytes> = zmq_message.collect();
 
         Ok(Message {
             zmq_identities,
@@ -172,8 +176,8 @@ impl Message<IncomingContent> {
 }
 
 impl Message<ShellRequest> {
-    pub fn recv(socket: &Socket) -> Result<Self, ()> {
-        let msg = Message::<IncomingContent>::recv(socket, Channel::Shell)?;
+    pub async fn recv<S: SocketRecv>(socket: &mut S) -> Result<Self, ()> {
+        let msg = Message::<IncomingContent>::recv(socket, Channel::Shell).await?;
         let Message {
             zmq_identities,
             header,

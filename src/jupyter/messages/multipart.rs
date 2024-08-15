@@ -1,22 +1,23 @@
 use std::iter;
 
+use bytes::Bytes;
 use hmac::Mac;
-use zmq::Socket;
+use zeromq::{SocketSend, ZmqMessage};
 
 use super::{Message, OutgoingContent, DIGESTER};
 
-pub struct Multipart(Box<dyn Iterator<Item = zmq::Message> + Send>);
+pub struct Multipart(ZmqMessage);
 
 impl Multipart {
-    pub fn send(self, socket: &Socket) -> Result<(), ()> {
-        socket.send_multipart(self.0, 0).unwrap();
+    pub async fn send<S: SocketSend>(self, socket: &mut S) -> Result<(), ()> {
+        socket.send(self.0).await.unwrap();
         Ok(())
     }
 }
 
 impl Message<OutgoingContent> {
     fn into_multipart_impl(self) -> Result<Multipart, ()> {
-        let zmq_identities = self.zmq_identities.into_iter().map(Vec::from);
+        let zmq_identities = self.zmq_identities;
         let header = serde_json::to_string(&self.header).unwrap();
         let parent_header = match self.parent_header {
             Some(ref parent_header) => serde_json::to_string(parent_header).unwrap(),
@@ -27,7 +28,7 @@ impl Message<OutgoingContent> {
             OutgoingContent::Shell(ref content) => serde_json::to_string(content).unwrap(),
             OutgoingContent::Iopub(ref content) => serde_json::to_string(content).unwrap(),
         };
-        let buffers = self.buffers.into_iter().map(Vec::from);
+        let buffers = self.buffers;
 
         let mut digester = DIGESTER.get().clone();
         digester.update(header.as_bytes());
@@ -37,18 +38,18 @@ impl Message<OutgoingContent> {
         let signature = digester.finalize().into_bytes();
         let signature = hex::encode(signature);
 
-        let iter = zmq_identities
-            .map(zmq::Message::from)
-            .chain(iter::once(zmq::Message::from(b"<IDS|MSG>".as_slice())))
+        let frames: Vec<Bytes> = zmq_identities
+            .into_iter()
+            .chain(iter::once(Bytes::from_static(b"<IDS|MSG>")))
             .chain(
                 [signature, header, parent_header, metadata, content]
                     .into_iter()
-                    .map(String::into_bytes)
-                    .map(zmq::Message::from),
+                    .map(Bytes::from),
             )
-            .chain(buffers.map(zmq::Message::from));
+            .chain(buffers.into_iter())
+            .collect();
 
-        Ok(Multipart(Box::new(iter)))
+        Ok(Multipart(ZmqMessage::try_from(frames).unwrap()))
     }
 }
 

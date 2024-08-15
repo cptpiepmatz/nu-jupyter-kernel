@@ -6,7 +6,6 @@ use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::PipelineData;
 use parking_lot::Mutex;
 use serde_json::json;
-use zmq::Socket;
 
 use super::stream::StreamHandler;
 use crate::jupyter::messages::iopub::{self, ExecuteResult, IopubBroacast, Status};
@@ -19,12 +18,13 @@ use crate::nu::commands::external::External;
 use crate::nu::konst::Konst;
 use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender};
 use crate::nu::{self, ExecuteError};
+use crate::ShellSocket;
 
 // TODO: get rid of this static by passing this into the display command
 pub static RENDER_FILTER: Mutex<Option<Mime>> = Mutex::new(Option::None);
 
-pub fn handle(
-    socket: Socket,
+pub async fn handle(
+    mut socket: ShellSocket,
     iopub: mpsc::Sender<Multipart>,
     mut stdout_handler: StreamHandler,
     mut stderr_handler: StreamHandler,
@@ -35,7 +35,7 @@ pub fn handle(
     mut cell: Cell,
 ) {
     loop {
-        let message = match Message::recv(&socket) {
+        let message = match Message::recv(&mut socket).await {
             Err(_) => {
                 eprintln!("could not recv message");
                 continue;
@@ -44,7 +44,7 @@ pub fn handle(
         };
 
         let mut ctx = HandlerContext {
-            socket: &socket,
+            socket: &mut socket,
             iopub: &iopub,
             stdout_handler: &mut stdout_handler,
             stderr_handler: &mut stderr_handler,
@@ -59,9 +59,9 @@ pub fn handle(
         send_status(&ctx, Status::Busy);
 
         match &message.content {
-            ShellRequest::Execute(request) => handle_execute_request(&mut ctx, request),
+            ShellRequest::Execute(request) => handle_execute_request(&mut ctx, request).await,
             ShellRequest::IsComplete(_) => todo!(),
-            ShellRequest::KernelInfo => handle_kernel_info_request(&ctx),
+            ShellRequest::KernelInfo => handle_kernel_info_request(&mut ctx).await,
         }
 
         send_status(&ctx, Status::Idle);
@@ -69,7 +69,7 @@ pub fn handle(
 }
 
 struct HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm> {
-    socket: &'so Socket,
+    socket: &'so mut ShellSocket,
     iopub: &'io mpsc::Sender<Multipart>,
     stdout_handler: &'soh mut StreamHandler,
     stderr_handler: &'seh mut StreamHandler,
@@ -92,7 +92,9 @@ fn send_status(ctx: &HandlerContext, status: Status) {
         .unwrap();
 }
 
-fn handle_kernel_info_request(ctx: &HandlerContext) {
+async fn handle_kernel_info_request<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
+    ctx: &mut HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>,
+) {
     let kernel_info = KernelInfoReply::get();
     let reply = ShellReply::Ok(ShellReplyOk::KernelInfo(kernel_info));
     let msg_type = ShellReply::msg_type(&ctx.message.header.msg_type).unwrap();
@@ -104,7 +106,12 @@ fn handle_kernel_info_request(ctx: &HandlerContext) {
         content: reply,
         buffers: vec![],
     };
-    reply.into_multipart().unwrap().send(ctx.socket).unwrap();
+    reply
+        .into_multipart()
+        .unwrap()
+        .send(ctx.socket)
+        .await
+        .unwrap();
 }
 
 /// Representation of cell execution in Jupyter.
@@ -149,7 +156,10 @@ impl Cell {
     }
 }
 
-fn handle_execute_request(ctx: &mut HandlerContext, request: &ExecuteRequest) {
+async fn handle_execute_request<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
+    ctx: &mut HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>,
+    request: &ExecuteRequest,
+) {
     let ExecuteRequest {
         code,
         silent,
@@ -173,12 +183,16 @@ fn handle_execute_request(ctx: &mut HandlerContext, request: &ExecuteRequest) {
         ctx.message.header.clone(),
     );
     match nu::execute(code, ctx.engine_state, ctx.stack, &cell_name) {
-        Ok(data) => handle_execute_results(ctx, msg_type, data),
-        Err(error) => handle_execute_error(ctx, msg_type, error),
+        Ok(data) => handle_execute_results(ctx, msg_type, data).await,
+        Err(error) => handle_execute_error(ctx, msg_type, error).await,
     };
 }
 
-fn handle_execute_error(ctx: &HandlerContext, msg_type: &str, error: ExecuteError) {
+async fn handle_execute_error<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
+    ctx: &mut HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>,
+    msg_type: &str,
+    error: ExecuteError,
+) {
     let mut working_set = StateWorkingSet::new(ctx.engine_state);
     let report = match error {
         nu::ExecuteError::Parse { ref error, delta } => {
@@ -192,7 +206,8 @@ fn handle_execute_error(ctx: &HandlerContext, msg_type: &str, error: ExecuteErro
 
     let name = report
         .code()
-        .unwrap_or_else(|| Box::new(format_args!("nu-jupyter-kernel::unknown-error")));
+        .unwrap_or_else(|| Box::new(format_args!("nu-jupyter-kernel::unknown-error")))
+        .to_string();
     let value = nu_protocol::format_error(&working_set, report);
     // TODO: for traceback use error source
     let traceback = vec![];
@@ -214,7 +229,7 @@ fn handle_execute_error(ctx: &HandlerContext, msg_type: &str, error: ExecuteErro
     ctx.iopub.send(broadcast.into_multipart().unwrap()).unwrap();
 
     let reply = ShellReply::Error {
-        name: name.to_string(),
+        name,
         value,
         traceback,
     };
@@ -226,10 +241,19 @@ fn handle_execute_error(ctx: &HandlerContext, msg_type: &str, error: ExecuteErro
         content: reply,
         buffers: vec![],
     };
-    reply.into_multipart().unwrap().send(ctx.socket).unwrap();
+    reply
+        .into_multipart()
+        .unwrap()
+        .send(ctx.socket)
+        .await
+        .unwrap();
 }
 
-fn handle_execute_results(ctx: &mut HandlerContext, msg_type: &str, pipeline_data: PipelineData) {
+async fn handle_execute_results<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
+    ctx: &mut HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>,
+    msg_type: &str,
+    pipeline_data: PipelineData,
+) {
     let execution_count = ctx.cell.success();
 
     if !pipeline_data.is_nothing() {
@@ -274,5 +298,10 @@ fn handle_execute_results(ctx: &mut HandlerContext, msg_type: &str, pipeline_dat
         content: reply,
         buffers: vec![],
     };
-    reply.into_multipart().unwrap().send(ctx.socket).unwrap();
+    reply
+        .into_multipart()
+        .unwrap()
+        .send(ctx.socket)
+        .await
+        .unwrap();
 }

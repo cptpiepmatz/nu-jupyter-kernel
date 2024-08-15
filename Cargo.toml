@@ -58,7 +58,6 @@ static-toml = "1.2.0"
 
 # Networking and IPC
 os_pipe = { version = "1.1.5", features = ["io_safety"] }
-zmq = "0.10.0" # TODO: remove this when done
 zeromq = "0.4.0"
 
 # Synchronization and Concurrency

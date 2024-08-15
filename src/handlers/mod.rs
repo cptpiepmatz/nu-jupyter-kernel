@@ -1,25 +1,26 @@
 pub mod iopub {
     use std::sync::mpsc;
 
-    use zmq::Socket;
-
     use crate::jupyter::messages::multipart::Multipart;
+    use crate::IopubSocket;
 
-    pub fn handle(socket: Socket, iopub_rx: mpsc::Receiver<Multipart>) {
+    pub async fn handle(mut socket: IopubSocket, iopub_rx: mpsc::Receiver<Multipart>) {
         loop {
             let multipart = iopub_rx.recv().unwrap();
-            multipart.send(&socket).unwrap();
+            multipart.send(&mut socket).await.unwrap();
         }
     }
 }
 
 pub mod heartbeat {
-    use zmq::Socket;
+    use zeromq::{SocketRecv, SocketSend};
 
-    pub fn handle(socket: Socket) {
+    use crate::HeartbeatSocket;
+
+    pub async fn handle(mut socket: HeartbeatSocket) {
         loop {
-            let msg = socket.recv_multipart(0).unwrap();
-            socket.send_multipart(msg, 0).unwrap();
+            let msg = socket.recv().await.unwrap();
+            socket.send(msg).await.unwrap();
         }
     }
 }

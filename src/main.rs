@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
-use std::{panic, process, thread};
+use std::{panic, process};
 
 use clap::{Parser, Subcommand};
 use const_format::formatcp;
@@ -17,7 +17,7 @@ use nu::commands::{add_jupyter_command_context, JupyterCommandContext};
 use nu::konst::Konst;
 use nu::render::FormatDeclIds;
 use nu_protocol::engine::Stack;
-use zmq::{Context, Socket, SocketType};
+use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, ZmqResult};
 
 use crate::jupyter::messages::DIGESTER;
 
@@ -56,16 +56,22 @@ enum Command {
     },
 }
 
+type ShellSocket = RouterSocket;
+type IopubSocket = PubSocket;
+type StdinSocket = RouterSocket;
+type ControlSocket = RouterSocket;
+type HeartbeatSocket = RepSocket;
+
 struct Sockets {
-    pub shell: Socket,
-    pub iopub: Socket,
-    pub stdin: Socket,
-    pub control: Socket,
-    pub heartbeat: Socket,
+    pub shell: ShellSocket,
+    pub iopub: IopubSocket,
+    pub stdin: StdinSocket,
+    pub control: ControlSocket,
+    pub heartbeat: HeartbeatSocket,
 }
 
 impl Sockets {
-    fn start(connection_file: &ConnectionFile) -> zmq::Result<Self> {
+    async fn start(connection_file: &ConnectionFile) -> ZmqResult<Self> {
         let endpoint = |port| {
             format!(
                 "{}://{}:{}",
@@ -73,20 +79,24 @@ impl Sockets {
             )
         };
 
-        let shell = Context::new().socket(SocketType::ROUTER)?;
-        shell.bind(&endpoint(&connection_file.shell_port))?;
+        let mut shell = ShellSocket::new();
+        shell.bind(&endpoint(&connection_file.shell_port)).await?;
 
-        let iopub = Context::new().socket(SocketType::PUB)?;
-        iopub.bind(&endpoint(&connection_file.iopub_port))?;
+        let mut iopub = IopubSocket::new();
+        iopub.bind(&endpoint(&connection_file.iopub_port)).await?;
 
-        let stdin = Context::new().socket(SocketType::ROUTER)?;
-        stdin.bind(&endpoint(&connection_file.stdin_port))?;
+        let mut stdin = StdinSocket::new();
+        stdin.bind(&endpoint(&connection_file.stdin_port)).await?;
 
-        let control = Context::new().socket(SocketType::ROUTER)?;
-        control.bind(&endpoint(&connection_file.control_port))?;
+        let mut control = ControlSocket::new();
+        control
+            .bind(&endpoint(&connection_file.control_port))
+            .await?;
 
-        let heartbeat = Context::new().socket(SocketType::REP)?;
-        heartbeat.bind(&endpoint(&connection_file.heartbeat_port))?;
+        let mut heartbeat = HeartbeatSocket::new();
+        heartbeat
+            .bind(&endpoint(&connection_file.heartbeat_port))
+            .await?;
 
         Ok(Sockets {
             shell,
@@ -98,7 +108,8 @@ impl Sockets {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Cli::parse();
     match args.command {
         Command::Register { user, system } => {
@@ -112,15 +123,15 @@ fn main() {
         }
         Command::Start {
             connection_file_path,
-        } => start_kernel(connection_file_path),
+        } => start_kernel(connection_file_path).await,
     }
 }
 
-fn start_kernel(connection_file_path: impl AsRef<Path>) {
+async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     set_avalanche_panic_hook();
 
     let connection_file = ConnectionFile::from_path(connection_file_path).unwrap();
-    let sockets = Sockets::start(&connection_file).unwrap();
+    let sockets = Sockets::start(&connection_file).await.unwrap();
     DIGESTER.key_init(&connection_file.key).unwrap();
 
     let mut engine_state = nu::initial_engine_state();
@@ -147,36 +158,23 @@ fn start_kernel(connection_file_path: impl AsRef<Path>) {
 
     let cell = Cell::new();
 
-    let heartbeat_thread = thread::Builder::new()
-        .name("heartbeat".to_owned())
-        .spawn(move || handlers::heartbeat::handle(sockets.heartbeat))
-        .unwrap();
-    let iopub_thread = thread::Builder::new()
-        .name("iopub".to_owned())
-        .spawn(move || handlers::iopub::handle(sockets.iopub, iopub_rx))
-        .unwrap();
-    let shell_thread = thread::Builder::new()
-        .name("shell".to_owned())
-        .spawn(move || {
-            handlers::shell::handle(
-                sockets.shell,
-                iopub_tx,
-                stdout_handler,
-                stderr_handler,
-                engine_state,
-                stack,
-                format_decl_ids,
-                konst,
-                cell,
-            )
-        })
-        .unwrap();
+    let heartbeat_task = tokio::spawn(handlers::heartbeat::handle(sockets.heartbeat));
+    let iopub_task = tokio::spawn(handlers::iopub::handle(sockets.iopub, iopub_rx));
+    let shell_task = tokio::spawn(handlers::shell::handle(
+        sockets.shell,
+        iopub_tx,
+        stdout_handler,
+        stderr_handler,
+        engine_state,
+        stack,
+        format_decl_ids,
+        konst,
+        cell,
+    ));
 
-    // TODO: shutdown threads too
-
-    let _ = heartbeat_thread.join();
-    let _ = iopub_thread.join();
-    let _ = shell_thread.join();
+    heartbeat_task.await.unwrap();
+    iopub_task.await.unwrap();
+    shell_task.await.unwrap();
 }
 
 // no heartbeat nor iopub as they are handled differently
