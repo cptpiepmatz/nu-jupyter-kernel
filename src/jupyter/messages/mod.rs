@@ -127,7 +127,7 @@ impl Message<IncomingContent> {
         let zmq_message = &mut zmq_message;
 
         let mut zmq_identities = Vec::new();
-        while let Some(bytes) = zmq_message.next() {
+        for bytes in zmq_message.by_ref() {
             if bytes.deref() == b"<IDS|MSG>" {
                 break;
             }

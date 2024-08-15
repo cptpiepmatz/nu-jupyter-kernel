@@ -46,7 +46,7 @@ impl Message<OutgoingContent> {
                     .into_iter()
                     .map(Bytes::from),
             )
-            .chain(buffers.into_iter())
+            .chain(buffers)
             .collect();
 
         Ok(Multipart(ZmqMessage::try_from(frames).unwrap()))
