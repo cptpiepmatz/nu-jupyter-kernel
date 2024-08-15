@@ -201,7 +201,7 @@ async fn handle_execute_error(
     msg_type: &str,
     error: ExecuteError,
 ) {
-    let mut working_set = StateWorkingSet::new(&mut ctx.engine_state);
+    let mut working_set = StateWorkingSet::new(&ctx.engine_state);
     let report = match error {
         nu::ExecuteError::Parse { ref error, delta } => {
             working_set.delta = delta;
@@ -274,7 +274,7 @@ async fn handle_execute_results(
             let mut render_filter = RENDER_FILTER.lock();
             PipelineRender::render(
                 pipeline_data,
-                &mut ctx.engine_state,
+                &ctx.engine_state,
                 &mut ctx.stack,
                 ctx.format_decl_ids,
                 render_filter.take(),

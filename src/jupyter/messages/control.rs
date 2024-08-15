@@ -56,7 +56,7 @@ impl ControlReply {
 #[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
 pub enum ControlReplyOk {
-    KernelInfo(KernelInfo),
+    KernelInfo(Box<KernelInfo>),
     Shutdown(Shutdown),
     Interrupt,
     Debug,

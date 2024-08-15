@@ -26,7 +26,7 @@ pub async fn handle(mut socket: ControlSocket, sender: broadcast::Sender<Shutdow
 
 async fn handle_kernel_info_request(socket: &mut ControlSocket, message: &Message<ControlRequest>) {
     let kernel_info = KernelInfo::get();
-    let reply = ControlReply::Ok(ControlReplyOk::KernelInfo(kernel_info));
+    let reply = ControlReply::Ok(ControlReplyOk::KernelInfo(Box::new(kernel_info)));
     let msg_type = ControlReply::msg_type(&message.header.msg_type).unwrap();
     let reply = Message {
         zmq_identities: message.zmq_identities.clone(),
