@@ -3,7 +3,6 @@
 #![allow(unused_variables)]
 
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
 use std::{panic, process};
 
 use clap::{Parser, Subcommand};
@@ -17,6 +16,7 @@ use nu::commands::{add_jupyter_command_context, JupyterCommandContext};
 use nu::konst::Konst;
 use nu::render::FormatDeclIds;
 use nu_protocol::engine::Stack;
+use tokio::sync::{broadcast, mpsc};
 use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, ZmqResult};
 
 use crate::jupyter::messages::DIGESTER;
@@ -24,6 +24,7 @@ use crate::jupyter::messages::DIGESTER;
 mod handlers;
 mod jupyter;
 mod nu;
+mod util;
 
 static_toml::static_toml! {
     const CARGO_TOML = include_toml!("Cargo.toml");
@@ -139,7 +140,8 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     nu::commands::hide_incompatible_commands(&mut engine_state).unwrap();
     let konst = Konst::register(&mut engine_state).unwrap();
 
-    let (iopub_tx, iopub_rx) = mpsc::channel();
+    let (iopub_tx, iopub_rx) = mpsc::channel(1);
+    let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
 
     let ctx = JupyterCommandContext {
         iopub: iopub_tx.clone(),
@@ -158,10 +160,18 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
 
     let cell = Cell::new();
 
-    let heartbeat_task = tokio::spawn(handlers::heartbeat::handle(sockets.heartbeat));
-    let iopub_task = tokio::spawn(handlers::iopub::handle(sockets.iopub, iopub_rx));
+    let heartbeat_task = tokio::spawn(handlers::heartbeat::handle(
+        sockets.heartbeat,
+        shutdown_rx.resubscribe(),
+    ));
+    let iopub_task = tokio::spawn(handlers::iopub::handle(
+        sockets.iopub,
+        shutdown_rx.resubscribe(),
+        iopub_rx,
+    ));
     let shell_task = tokio::spawn(handlers::shell::handle(
         sockets.shell,
+        shutdown_rx.resubscribe(),
         iopub_tx,
         stdout_handler,
         stderr_handler,

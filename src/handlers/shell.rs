@@ -1,13 +1,14 @@
 use std::collections::HashMap;
-use std::sync::mpsc;
 
 use mime::Mime;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::PipelineData;
 use parking_lot::Mutex;
 use serde_json::json;
+use tokio::sync::{broadcast, mpsc};
 
 use super::stream::StreamHandler;
+use super::Shutdown;
 use crate::jupyter::messages::iopub::{self, ExecuteResult, IopubBroacast, Status};
 use crate::jupyter::messages::multipart::Multipart;
 use crate::jupyter::messages::shell::{
@@ -18,6 +19,7 @@ use crate::nu::commands::external::External;
 use crate::nu::konst::Konst;
 use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender};
 use crate::nu::{self, ExecuteError};
+use crate::util::Select;
 use crate::ShellSocket;
 
 // TODO: get rid of this static by passing this into the display command
@@ -25,6 +27,7 @@ pub static RENDER_FILTER: Mutex<Option<Mime>> = Mutex::new(Option::None);
 
 pub async fn handle(
     mut socket: ShellSocket,
+    mut shutdown: broadcast::Receiver<Shutdown>,
     iopub: mpsc::Sender<Multipart>,
     mut stdout_handler: StreamHandler,
     mut stderr_handler: StreamHandler,
@@ -34,13 +37,29 @@ pub async fn handle(
     konst: Konst,
     mut cell: Cell,
 ) {
+    let initial_engine_state = engine_state.clone();
+    let initial_stack = stack.clone();
+
     loop {
-        let message = match Message::recv(&mut socket).await {
-            Err(_) => {
+        let next = tokio::select! {
+            biased;
+            v = shutdown.recv() => Select::Left(v),
+            v = Message::recv(&mut socket) => Select::Right(v),
+        };
+
+        let message = match next {
+            Select::Left(Ok(Shutdown { restart: false })) => break,
+            Select::Left(Ok(Shutdown { restart: true })) => {
+                engine_state = initial_engine_state.clone();
+                stack = initial_stack.clone();
+                continue;
+            }
+            Select::Left(Err(_)) => break,
+            Select::Right(Ok(msg)) => msg,
+            Select::Right(Err(_)) => {
                 eprintln!("could not recv message");
                 continue;
             }
-            Ok(message) => message,
         };
 
         let mut ctx = HandlerContext {
@@ -56,7 +75,7 @@ pub async fn handle(
             message: &message,
         };
 
-        send_status(&ctx, Status::Busy);
+        send_status(&mut ctx, Status::Busy).await;
 
         match &message.content {
             ShellRequest::Execute(request) => handle_execute_request(&mut ctx, request).await,
@@ -64,7 +83,7 @@ pub async fn handle(
             ShellRequest::KernelInfo => handle_kernel_info_request(&mut ctx).await,
         }
 
-        send_status(&ctx, Status::Idle);
+        send_status(&mut ctx, Status::Idle).await;
     }
 }
 
@@ -81,7 +100,10 @@ struct HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm> {
     message: &'m Message<ShellRequest>,
 }
 
-fn send_status(ctx: &HandlerContext, status: Status) {
+async fn send_status<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
+    ctx: &mut HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>,
+    status: Status,
+) {
     ctx.iopub
         .send(
             status
@@ -89,6 +111,7 @@ fn send_status(ctx: &HandlerContext, status: Status) {
                 .into_multipart()
                 .unwrap(),
         )
+        .await
         .unwrap();
 }
 
@@ -226,7 +249,10 @@ async fn handle_execute_error<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
         content: broadcast,
         buffers: vec![],
     };
-    ctx.iopub.send(broadcast.into_multipart().unwrap()).unwrap();
+    ctx.iopub
+        .send(broadcast.into_multipart().unwrap())
+        .await
+        .unwrap();
 
     let reply = ShellReply::Error {
         name,
@@ -257,16 +283,19 @@ async fn handle_execute_results<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
     let execution_count = ctx.cell.success();
 
     if !pipeline_data.is_nothing() {
-        let mut render_filter = RENDER_FILTER.lock();
-        let render: StringifiedPipelineRender = PipelineRender::render(
-            pipeline_data,
-            ctx.engine_state,
-            ctx.stack,
-            ctx.format_decl_ids,
-            render_filter.take(),
-        )
-        .unwrap() // TODO: replace this with some actual handling
-        .into();
+        let render: StringifiedPipelineRender = {
+            // render filter needs to be dropped until next async yield
+            let mut render_filter = RENDER_FILTER.lock();
+            PipelineRender::render(
+                pipeline_data,
+                ctx.engine_state,
+                ctx.stack,
+                ctx.format_decl_ids,
+                render_filter.take(),
+            )
+            .unwrap() // TODO: replace this with some actual handling
+            .into()
+        };
 
         let execute_result = ExecuteResult {
             execution_count,
@@ -282,7 +311,10 @@ async fn handle_execute_results<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
             content: broadcast,
             buffers: vec![],
         };
-        ctx.iopub.send(broadcast.into_multipart().unwrap()).unwrap();
+        ctx.iopub
+            .send(broadcast.into_multipart().unwrap())
+            .await
+            .unwrap();
     }
 
     let reply = ExecuteReply {

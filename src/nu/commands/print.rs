@@ -133,7 +133,7 @@ impl Command for Print {
 
         self.0
             .iopub
-            .send(message.into_multipart().unwrap())
+            .blocking_send(message.into_multipart().unwrap())
             .unwrap();
 
         Ok(PipelineData::Empty)

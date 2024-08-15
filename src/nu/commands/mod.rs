@@ -1,8 +1,8 @@
 use std::fmt::Write;
-use std::sync::mpsc;
 
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::Category;
+use tokio::sync::mpsc;
 
 use super::konst::Konst;
 use super::render::FormatDeclIds;

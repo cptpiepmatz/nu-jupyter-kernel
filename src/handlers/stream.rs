@@ -1,12 +1,12 @@
 use std::fs::File;
 use std::io::{self, Read};
 use std::os;
-use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::thread::{self};
 
 use bytes::Bytes;
 use parking_lot::Mutex;
+use tokio::sync::mpsc;
 
 use crate::jupyter::messages::iopub::{self, IopubBroacast};
 use crate::jupyter::messages::multipart::Multipart;
@@ -22,7 +22,7 @@ pub struct StreamHandler {
 impl StreamHandler {
     pub fn start(
         stream_name: iopub::StreamName,
-        iopub_tx: Sender<Multipart>,
+        iopub_tx: mpsc::Sender<Multipart>,
     ) -> io::Result<(Self, File)> {
         // TODO: construct a Self, create a pipe, start a reader thread, return the
         // writer as a file
@@ -63,8 +63,10 @@ impl StreamHandler {
                         content: broadcast,
                         buffers: vec![],
                     };
-                    // TODO: handle this better
-                    iopub_tx.send(message.into_multipart().unwrap()).unwrap();
+                    // TODO: handle this better, also does this need to be blocking?
+                    iopub_tx
+                        .blocking_send(message.into_multipart().unwrap())
+                        .unwrap();
                 }
             })?;
 
