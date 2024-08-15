@@ -62,7 +62,7 @@ zeromq = "0.4.0"
 
 # Synchronization and Concurrency
 parking_lot = "0.12.2"
-tokio = { version = "1.39.2", features = ["full"] } # TODO: reduce the required features
+tokio = { version = "1.39.2", features = ["rt", "macros", "parking_lot"] }
 
 # Miscellaneous
 atomic_enum = "0.3.0"
