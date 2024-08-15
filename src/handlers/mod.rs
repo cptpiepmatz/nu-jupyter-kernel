@@ -1,8 +1,8 @@
 pub mod iopub {
     use tokio::sync::{broadcast, mpsc};
 
-    use super::Shutdown;
     use crate::jupyter::messages::multipart::Multipart;
+    use crate::jupyter::Shutdown;
     use crate::util::Select;
     use crate::IopubSocket;
 
@@ -33,7 +33,7 @@ pub mod heartbeat {
     use tokio::sync::broadcast;
     use zeromq::{SocketRecv, SocketSend};
 
-    use super::Shutdown;
+    use crate::jupyter::Shutdown;
     use crate::util::Select;
     use crate::HeartbeatSocket;
 
@@ -56,10 +56,6 @@ pub mod heartbeat {
     }
 }
 
+pub mod control;
 pub mod shell;
 pub mod stream;
-
-#[derive(Debug, Clone, Copy)]
-pub struct Shutdown {
-    pub restart: bool,
-}

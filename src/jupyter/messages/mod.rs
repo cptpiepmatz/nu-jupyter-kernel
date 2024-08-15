@@ -4,6 +4,7 @@ use std::sync::OnceLock;
 
 use bytes::Bytes;
 use chrono::Utc;
+use control::ControlRequest;
 use derive_more::From;
 use hmac::{Hmac, Mac};
 use nu_protocol::{FromValue, IntoValue};
@@ -17,6 +18,7 @@ use zeromq::SocketRecv;
 use self::shell::ShellRequest;
 use crate::{Channel, CARGO_TOML};
 
+pub mod control;
 pub mod iopub;
 pub mod multipart;
 pub mod shell;
@@ -100,12 +102,14 @@ impl Metadata {
 #[derive(Debug, Deserialize, Clone)]
 pub enum IncomingContent {
     Shell(shell::ShellRequest),
+    Control(control::ControlRequest),
 }
 
 #[derive(Debug, Serialize, From, Clone)]
 pub enum OutgoingContent {
     Shell(shell::ShellReply),
     Iopub(iopub::IopubBroacast),
+    Control(control::ControlReply),
 }
 
 #[derive(Debug, Clone)]
@@ -154,12 +158,16 @@ impl Message<IncomingContent> {
         let metadata: Metadata = serde_json::from_str(&metadata).unwrap();
 
         let content = next_string(zmq_message);
+        // FIXME: this is a annoying solution, should be handled somehow by the type
+        // system better
         let content = match source {
             Channel::Shell => {
                 IncomingContent::Shell(ShellRequest::parse_variant(&header.msg_type, &content)?)
             }
             Channel::Stdin => todo!(),
-            Channel::Control => todo!(),
+            Channel::Control => {
+                IncomingContent::Control(ControlRequest::parse_variant(&header.msg_type, &content)?)
+            }
         };
 
         let buffers: Vec<Bytes> = zmq_message.collect();
@@ -186,7 +194,36 @@ impl Message<ShellRequest> {
             content,
             buffers,
         } = msg;
-        let IncomingContent::Shell(content) = content;
+        let IncomingContent::Shell(content) = content
+        else {
+            panic!("unexpected content");
+        };
+        Ok(Message {
+            zmq_identities,
+            header,
+            parent_header,
+            metadata,
+            content,
+            buffers,
+        })
+    }
+}
+
+impl Message<ControlRequest> {
+    pub async fn recv<S: SocketRecv>(socket: &mut S) -> Result<Self, ()> {
+        let msg = Message::<IncomingContent>::recv(socket, Channel::Control).await?;
+        let Message {
+            zmq_identities,
+            header,
+            parent_header,
+            metadata,
+            content,
+            buffers,
+        } = msg;
+        let IncomingContent::Control(content) = content
+        else {
+            panic!("unexpected content");
+        };
         Ok(Message {
             zmq_identities,
             header,

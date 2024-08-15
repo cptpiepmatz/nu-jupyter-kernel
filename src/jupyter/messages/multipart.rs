@@ -27,6 +27,7 @@ impl Message<OutgoingContent> {
         let content = match self.content {
             OutgoingContent::Shell(ref content) => serde_json::to_string(content).unwrap(),
             OutgoingContent::Iopub(ref content) => serde_json::to_string(content).unwrap(),
+            OutgoingContent::Control(ref content) => serde_json::to_string(content).unwrap(),
         };
         let buffers = self.buffers;
 

@@ -8,13 +8,14 @@ use serde_json::json;
 use tokio::sync::{broadcast, mpsc};
 
 use super::stream::StreamHandler;
-use super::Shutdown;
+use crate::jupyter::kernel_info::KernelInfo;
 use crate::jupyter::messages::iopub::{self, ExecuteResult, IopubBroacast, Status};
 use crate::jupyter::messages::multipart::Multipart;
 use crate::jupyter::messages::shell::{
-    ExecuteReply, ExecuteRequest, KernelInfoReply, ShellReply, ShellReplyOk, ShellRequest,
+    ExecuteReply, ExecuteRequest, ShellReply, ShellReplyOk, ShellRequest,
 };
 use crate::jupyter::messages::{Header, Message, Metadata};
+use crate::jupyter::Shutdown;
 use crate::nu::commands::external::External;
 use crate::nu::konst::Konst;
 use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender};
@@ -25,33 +26,34 @@ use crate::ShellSocket;
 // TODO: get rid of this static by passing this into the display command
 pub static RENDER_FILTER: Mutex<Option<Mime>> = Mutex::new(Option::None);
 
-pub async fn handle(
-    mut socket: ShellSocket,
-    mut shutdown: broadcast::Receiver<Shutdown>,
-    iopub: mpsc::Sender<Multipart>,
-    mut stdout_handler: StreamHandler,
-    mut stderr_handler: StreamHandler,
-    mut engine_state: EngineState,
-    mut stack: Stack,
-    format_decl_ids: FormatDeclIds,
-    konst: Konst,
-    mut cell: Cell,
-) {
-    let initial_engine_state = engine_state.clone();
-    let initial_stack = stack.clone();
+pub struct HandlerContext {
+    pub socket: ShellSocket,
+    pub iopub: mpsc::Sender<Multipart>,
+    pub stdout_handler: StreamHandler,
+    pub stderr_handler: StreamHandler,
+    pub engine_state: EngineState,
+    pub format_decl_ids: FormatDeclIds,
+    pub konst: Konst,
+    pub stack: Stack,
+    pub cell: Cell,
+}
+
+pub async fn handle(mut ctx: HandlerContext, mut shutdown: broadcast::Receiver<Shutdown>) {
+    let initial_engine_state = ctx.engine_state.clone();
+    let initial_stack = ctx.stack.clone();
 
     loop {
         let next = tokio::select! {
             biased;
             v = shutdown.recv() => Select::Left(v),
-            v = Message::recv(&mut socket) => Select::Right(v),
+            v = Message::<ShellRequest>::recv(&mut ctx.socket) => Select::Right(v),
         };
 
         let message = match next {
             Select::Left(Ok(Shutdown { restart: false })) => break,
             Select::Left(Ok(Shutdown { restart: true })) => {
-                engine_state = initial_engine_state.clone();
-                stack = initial_stack.clone();
+                ctx.engine_state = initial_engine_state.clone();
+                ctx.stack = initial_stack.clone();
                 continue;
             }
             Select::Left(Err(_)) => break,
@@ -62,77 +64,29 @@ pub async fn handle(
             }
         };
 
-        let mut ctx = HandlerContext {
-            socket: &mut socket,
-            iopub: &iopub,
-            stdout_handler: &mut stdout_handler,
-            stderr_handler: &mut stderr_handler,
-            engine_state: &mut engine_state,
-            format_decl_ids,
-            konst,
-            stack: &mut stack,
-            cell: &mut cell,
-            message: &message,
-        };
-
-        send_status(&mut ctx, Status::Busy).await;
+        send_status(&mut ctx, &message, Status::Busy).await;
 
         match &message.content {
-            ShellRequest::Execute(request) => handle_execute_request(&mut ctx, request).await,
+            ShellRequest::KernelInfo => handle_kernel_info_request(&mut ctx, &message).await,
+            ShellRequest::Execute(request) => {
+                // take the context out temporarily to allow execution on another thread
+                ctx = handle_execute_request(ctx, &message, request).await;
+            }
             ShellRequest::IsComplete(_) => todo!(),
-            ShellRequest::KernelInfo => handle_kernel_info_request(&mut ctx).await,
         }
 
-        send_status(&mut ctx, Status::Idle).await;
+        send_status(&mut ctx, &message, Status::Idle).await;
     }
 }
 
-struct HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm> {
-    socket: &'so mut ShellSocket,
-    iopub: &'io mpsc::Sender<Multipart>,
-    stdout_handler: &'soh mut StreamHandler,
-    stderr_handler: &'seh mut StreamHandler,
-    engine_state: &'es mut EngineState,
-    format_decl_ids: FormatDeclIds,
-    konst: Konst,
-    stack: &'st mut Stack,
-    cell: &'c mut Cell,
-    message: &'m Message<ShellRequest>,
-}
-
-async fn send_status<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
-    ctx: &mut HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>,
-    status: Status,
-) {
+async fn send_status(ctx: &mut HandlerContext, message: &Message<ShellRequest>, status: Status) {
     ctx.iopub
         .send(
             status
-                .into_message(ctx.message.header.clone())
+                .into_message(message.header.clone())
                 .into_multipart()
                 .unwrap(),
         )
-        .await
-        .unwrap();
-}
-
-async fn handle_kernel_info_request<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
-    ctx: &mut HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>,
-) {
-    let kernel_info = KernelInfoReply::get();
-    let reply = ShellReply::Ok(ShellReplyOk::KernelInfo(kernel_info));
-    let msg_type = ShellReply::msg_type(&ctx.message.header.msg_type).unwrap();
-    let reply = Message {
-        zmq_identities: ctx.message.zmq_identities.clone(),
-        header: Header::new(msg_type),
-        parent_header: Some(ctx.message.header.clone()),
-        metadata: Metadata::empty(),
-        content: reply,
-        buffers: vec![],
-    };
-    reply
-        .into_multipart()
-        .unwrap()
-        .send(ctx.socket)
         .await
         .unwrap();
 }
@@ -179,10 +133,31 @@ impl Cell {
     }
 }
 
-async fn handle_execute_request<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
-    ctx: &mut HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>,
+async fn handle_kernel_info_request(ctx: &mut HandlerContext, message: &Message<ShellRequest>) {
+    let kernel_info = KernelInfo::get();
+    let reply = ShellReply::Ok(ShellReplyOk::KernelInfo(kernel_info));
+    let msg_type = ShellReply::msg_type(&message.header.msg_type).unwrap();
+    let reply = Message {
+        zmq_identities: message.zmq_identities.clone(),
+        header: Header::new(msg_type),
+        parent_header: Some(message.header.clone()),
+        metadata: Metadata::empty(),
+        content: reply,
+        buffers: vec![],
+    };
+    reply
+        .into_multipart()
+        .unwrap()
+        .send(&mut ctx.socket)
+        .await
+        .unwrap();
+}
+
+async fn handle_execute_request(
+    mut ctx: HandlerContext,
+    message: &Message<ShellRequest>,
     request: &ExecuteRequest,
-) {
+) -> HandlerContext {
     let ExecuteRequest {
         code,
         silent,
@@ -191,32 +166,42 @@ async fn handle_execute_request<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
         allow_stdin,
         stop_on_error,
     } = request;
-    let msg_type = ShellReply::msg_type(&ctx.message.header.msg_type).unwrap();
-    External::apply(ctx.engine_state).unwrap();
+    let msg_type = ShellReply::msg_type(&message.header.msg_type).unwrap();
+    External::apply(&mut ctx.engine_state).unwrap();
 
     let cell_name = ctx.cell.next_name();
     ctx.konst
-        .update(ctx.stack, cell_name.clone(), ctx.message.clone());
-    ctx.stdout_handler.update_reply(
-        ctx.message.zmq_identities.clone(),
-        ctx.message.header.clone(),
-    );
-    ctx.stderr_handler.update_reply(
-        ctx.message.zmq_identities.clone(),
-        ctx.message.header.clone(),
-    );
-    match nu::execute(code, ctx.engine_state, ctx.stack, &cell_name) {
-        Ok(data) => handle_execute_results(ctx, msg_type, data).await,
-        Err(error) => handle_execute_error(ctx, msg_type, error).await,
+        .update(&mut ctx.stack, cell_name.clone(), message.clone());
+    ctx.stdout_handler
+        .update_reply(message.zmq_identities.clone(), message.header.clone());
+    ctx.stderr_handler
+        .update_reply(message.zmq_identities.clone(), message.header.clone());
+
+    // TODO: place coll in cell, then just pass the cell
+    let code = code.to_owned();
+    let (executed, mut ctx) = tokio::task::spawn_blocking(move || {
+        (
+            nu::execute(&code, &mut ctx.engine_state, &mut ctx.stack, &cell_name),
+            ctx,
+        )
+    })
+    .await
+    .unwrap();
+    match executed {
+        Ok(data) => handle_execute_results(&mut ctx, message, msg_type, data).await,
+        Err(error) => handle_execute_error(&mut ctx, message, msg_type, error).await,
     };
+
+    ctx
 }
 
-async fn handle_execute_error<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
-    ctx: &mut HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>,
+async fn handle_execute_error(
+    ctx: &mut HandlerContext,
+    message: &Message<ShellRequest>,
     msg_type: &str,
     error: ExecuteError,
 ) {
-    let mut working_set = StateWorkingSet::new(ctx.engine_state);
+    let mut working_set = StateWorkingSet::new(&mut ctx.engine_state);
     let report = match error {
         nu::ExecuteError::Parse { ref error, delta } => {
             working_set.delta = delta;
@@ -242,9 +227,9 @@ async fn handle_execute_error<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
         transient: HashMap::new(),
     });
     let broadcast = Message {
-        zmq_identities: ctx.message.zmq_identities.clone(),
+        zmq_identities: message.zmq_identities.clone(),
         header: Header::new(broadcast.msg_type()),
-        parent_header: Some(ctx.message.header.clone()),
+        parent_header: Some(message.header.clone()),
         metadata: Metadata::empty(),
         content: broadcast,
         buffers: vec![],
@@ -260,9 +245,9 @@ async fn handle_execute_error<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
         traceback,
     };
     let reply = Message {
-        zmq_identities: ctx.message.zmq_identities.clone(),
+        zmq_identities: message.zmq_identities.clone(),
         header: Header::new(msg_type),
-        parent_header: Some(ctx.message.header.clone()),
+        parent_header: Some(message.header.clone()),
         metadata: Metadata::empty(),
         content: reply,
         buffers: vec![],
@@ -270,13 +255,14 @@ async fn handle_execute_error<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
     reply
         .into_multipart()
         .unwrap()
-        .send(ctx.socket)
+        .send(&mut ctx.socket)
         .await
         .unwrap();
 }
 
-async fn handle_execute_results<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
-    ctx: &mut HandlerContext<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>,
+async fn handle_execute_results(
+    ctx: &mut HandlerContext,
+    message: &Message<ShellRequest>,
     msg_type: &str,
     pipeline_data: PipelineData,
 ) {
@@ -288,8 +274,8 @@ async fn handle_execute_results<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
             let mut render_filter = RENDER_FILTER.lock();
             PipelineRender::render(
                 pipeline_data,
-                ctx.engine_state,
-                ctx.stack,
+                &mut ctx.engine_state,
+                &mut ctx.stack,
                 ctx.format_decl_ids,
                 render_filter.take(),
             )
@@ -304,9 +290,9 @@ async fn handle_execute_results<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
         };
         let broadcast = IopubBroacast::from(execute_result);
         let broadcast = Message {
-            zmq_identities: ctx.message.zmq_identities.clone(),
+            zmq_identities: message.zmq_identities.clone(),
             header: Header::new(broadcast.msg_type()),
-            parent_header: Some(ctx.message.header.clone()),
+            parent_header: Some(message.header.clone()),
             metadata: Metadata::empty(),
             content: broadcast,
             buffers: vec![],
@@ -323,9 +309,9 @@ async fn handle_execute_results<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
     };
     let reply = ShellReply::Ok(ShellReplyOk::Execute(reply));
     let reply = Message {
-        zmq_identities: ctx.message.zmq_identities.clone(),
+        zmq_identities: message.zmq_identities.clone(),
         header: Header::new(msg_type),
-        parent_header: Some(ctx.message.header.clone()),
+        parent_header: Some(message.header.clone()),
         metadata: Metadata::empty(),
         content: reply,
         buffers: vec![],
@@ -333,7 +319,7 @@ async fn handle_execute_results<'so, 'io, 'soh, 'seh, 'es, 'st, 'c, 'm>(
     reply
         .into_multipart()
         .unwrap()
-        .send(ctx.socket)
+        .send(&mut ctx.socket)
         .await
         .unwrap();
 }

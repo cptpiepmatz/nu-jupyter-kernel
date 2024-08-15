@@ -164,27 +164,35 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
         sockets.heartbeat,
         shutdown_rx.resubscribe(),
     ));
+
     let iopub_task = tokio::spawn(handlers::iopub::handle(
         sockets.iopub,
         shutdown_rx.resubscribe(),
         iopub_rx,
     ));
-    let shell_task = tokio::spawn(handlers::shell::handle(
-        sockets.shell,
-        shutdown_rx.resubscribe(),
-        iopub_tx,
+
+    let shell_ctx = handlers::shell::HandlerContext {
+        socket: sockets.shell,
+        iopub: iopub_tx,
         stdout_handler,
         stderr_handler,
         engine_state,
-        stack,
         format_decl_ids,
         konst,
+        stack,
         cell,
+    };
+    let shell_task = tokio::spawn(handlers::shell::handle(
+        shell_ctx,
+        shutdown_rx.resubscribe(),
     ));
+
+    let control_task = tokio::spawn(handlers::control::handle(sockets.control, shutdown_tx));
 
     heartbeat_task.await.unwrap();
     iopub_task.await.unwrap();
     shell_task.await.unwrap();
+    control_task.await.unwrap();
 }
 
 // no heartbeat nor iopub as they are handled differently

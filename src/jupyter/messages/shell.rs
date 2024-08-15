@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::CARGO_TOML;
+use crate::jupyter::kernel_info::KernelInfo;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum ShellRequest {
@@ -14,8 +14,7 @@ impl ShellRequest {
         match variant {
             "execute_request" => Ok(Self::Execute(serde_json::from_str(body).unwrap())),
             "is_complete_request" => Ok(Self::IsComplete(serde_json::from_str(body).unwrap())),
-            "kernel_info_request" if body == "{}" => Ok(Self::KernelInfo),
-            "kernel_info_request" => todo!("handle incorrect body here"),
+            "kernel_info_request" => Ok(Self::KernelInfo),
             _ => {
                 eprintln!("unknown request {variant}");
                 Err(())
@@ -40,9 +39,9 @@ pub enum ShellReply {
 impl ShellReply {
     pub fn msg_type(request_type: &'_ str) -> Result<&'static str, ()> {
         Ok(match request_type {
+            "kernel_info_request" => "kernel_info_reply",
             "execute_request" => "execute_reply",
             "is_complete_request" => "is_complete_reply",
-            "kernel_info_request" => "kernel_info_reply",
             _ => todo!("handle unknown requests"),
         })
     }
@@ -51,8 +50,8 @@ impl ShellReply {
 #[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
 pub enum ShellReplyOk {
+    KernelInfo(KernelInfo),
     Execute(ExecuteReply),
-    KernelInfo(KernelInfoReply),
     IsComplete(IsCompleteReply),
 }
 
@@ -87,73 +86,4 @@ pub enum IsCompleteReply {
     Incomplete { indent: String },
     Invalid,
     Unknown,
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub struct KernelInfoReply {
-    pub protocol_version: String,
-    pub implementation: String,
-    pub implementation_version: String,
-    pub language_info: KernelLanguageInfo,
-    pub banner: String,
-    pub debugger: bool,
-    pub help_links: Vec<HelpLink>,
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub struct KernelLanguageInfo {
-    pub name: String,
-    pub version: String,
-    pub mimetype: String,
-    pub file_extension: String,
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub struct HelpLink {
-    pub text: String,
-    pub url: String,
-}
-
-impl<T, U> From<(T, U)> for HelpLink
-where
-    T: Into<String>,
-    U: Into<String>,
-{
-    fn from(value: (T, U)) -> Self {
-        HelpLink {
-            text: value.0.into(),
-            url: value.1.into(),
-        }
-    }
-}
-
-impl KernelInfoReply {
-    pub fn get() -> Self {
-        KernelInfoReply {
-            protocol_version: CARGO_TOML
-                .package
-                .metadata
-                .jupyter
-                .protocol_version
-                .to_owned(),
-            implementation: CARGO_TOML.package.name.to_owned(),
-            implementation_version: CARGO_TOML.package.version.to_owned(),
-            language_info: KernelLanguageInfo {
-                name: "nushell".to_owned(),
-                version: CARGO_TOML.dependencies.nu_engine.version.to_owned(),
-                // TODO: verify this
-                mimetype: "text/nu".to_owned(),
-                file_extension: ".nu".to_owned(),
-            },
-            banner: include_str!("../../../banner.txt").to_owned(),
-            debugger: false,
-            help_links: [
-                ("Discord", "https://discord.gg/NtAbbGn"),
-                ("GitHub", "https://github.com/nushell/nushell"),
-            ]
-            .into_iter()
-            .map(|pair| pair.into())
-            .collect(),
-        }
-    }
 }
