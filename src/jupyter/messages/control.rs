@@ -7,8 +7,8 @@ use crate::jupyter::Shutdown;
 pub enum ControlRequest {
     KernelInfo,
     Shutdown(Shutdown),
-    Interrupt, // TODO: add these
-    Debug,
+    Interrupt,
+    Debug, // TODO: check if this is reasonable
 }
 
 impl ControlRequest {
@@ -16,7 +16,7 @@ impl ControlRequest {
         match variant {
             "kernel_info_request" => Ok(Self::KernelInfo),
             "shutdown_request" => Ok(Self::Shutdown(serde_json::from_str(body).unwrap())),
-            "interrupt_request" => todo!(),
+            "interrupt_request" => Ok(Self::Interrupt),
             "debug_request" => todo!(),
             _ => {
                 eprintln!("found it here: {variant}");

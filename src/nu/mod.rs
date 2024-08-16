@@ -1,10 +1,12 @@
 use std::env;
 use std::fmt::Debug;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{EngineState, Stack, StateDelta, StateWorkingSet};
-use nu_protocol::{ParseError, PipelineData, ShellError, Span, Value, NU_VARIABLE_ID};
+use nu_protocol::{ParseError, PipelineData, ShellError, Signals, Span, Value, NU_VARIABLE_ID};
 use thiserror::Error;
 
 pub mod commands;
@@ -56,6 +58,13 @@ fn configure_engine_state(mut engine_state: EngineState) -> EngineState {
     }
 
     engine_state
+}
+
+pub fn add_interrupt_signal(mut engine_state: EngineState) -> (EngineState, Arc<AtomicBool>) {
+    let signal = Arc::new(AtomicBool::new(false));
+    let signals = Signals::new(signal.clone());
+    engine_state.set_signals(signals);
+    (engine_state, signal)
 }
 
 #[derive(Error)]

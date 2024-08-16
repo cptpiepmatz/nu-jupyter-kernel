@@ -139,6 +139,7 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let format_decl_ids = FormatDeclIds::find(&engine_state).unwrap();
     nu::commands::hide_incompatible_commands(&mut engine_state).unwrap();
     let konst = Konst::register(&mut engine_state).unwrap();
+    let (engine_state, interrupt_signal) = nu::add_interrupt_signal(engine_state);
 
     let (iopub_tx, iopub_rx) = mpsc::channel(1);
     let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
@@ -187,7 +188,11 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
         shutdown_rx.resubscribe(),
     ));
 
-    let control_task = tokio::spawn(handlers::control::handle(sockets.control, shutdown_tx));
+    let control_task = tokio::spawn(handlers::control::handle(
+        sockets.control,
+        shutdown_tx,
+        interrupt_signal,
+    ));
 
     heartbeat_task.await.unwrap();
     iopub_task.await.unwrap();

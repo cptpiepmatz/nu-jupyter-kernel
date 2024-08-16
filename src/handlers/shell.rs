@@ -192,6 +192,10 @@ async fn handle_execute_request(
         Err(error) => handle_execute_error(&mut ctx, message, msg_type, error).await,
     };
 
+    // reset interrupt signal after every execution, this also notifies the control
+    // handler
+    ctx.engine_state.reset_signals();
+
     ctx
 }
 

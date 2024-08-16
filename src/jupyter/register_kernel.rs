@@ -74,7 +74,7 @@ fn kernel_manifest() -> serde_json::Value {
         "argv": [this_exec, "start", "{connection_file}"],
         "display_name": "Nushell",
         "language": "nushell",
-        "interrupt_mode": "signal", // TODO: make this "message" later
+        "interrupt_mode": "message",
         "env": {},
         "metadata": {}
     })
