@@ -16,3 +16,10 @@ nu-protocol = { version = "0.96" }
 
 # plotting
 plotters = "0.3.6"
+
+# serialization, needed for custom values
+serde = { version = "1", features = ["derive"] }
+typetag = "0.2"
+
+# misc
+indoc = "2"
