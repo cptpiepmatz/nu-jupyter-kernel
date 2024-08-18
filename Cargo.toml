@@ -1,16 +1,36 @@
 [package]
 name = "nu-jupyter-kernel"
 version = "0.1.0-wip"
-edition = "2021"
+edition.workspace = true
 description = "A wip jupyter raw kernel for nu"
-repository = "https://github.com/cptpiepmatz/nu-jupyter-kernel"
-license = "MIT"
+repository.workspace = true
+license.workspace = true
 keywords = ["jupyter-kernel", "jupyter", "nushell"]
 categories = ["science"]
 publish = false
 
+[workspace.package]
+edition = "2021"
+repository = "https://github.com/cptpiepmatz/nu-jupyter-kernel"
+license = "MIT"
+
 [package.metadata.jupyter]
 protocol_version = "5.4"
+
+[features]
+default = ["plotting"]
+plotting = ["nu-plotters"]
+
+[workspace]
+members = ["crates/nu_plugin_plotters"]
+
+# plotting
+[dependencies.nu-plotters]
+package = "nu_plugin_plotters"
+version = "0.1.0-wip"
+path = "crates/nu_plugin_plotters"
+default-features = false
+optional = true
 
 [dependencies]
 # nu

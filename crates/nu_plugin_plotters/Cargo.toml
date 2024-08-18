@@ -1,0 +1,18 @@
+[package]
+name = "nu_plugin_plotters"
+version = "0.1.0-wip"
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+default = ["nu-plugin"]
+
+[dependencies]
+# nu
+nu-plugin = { version = "0.96", optional = true }
+nu-protocol = { version = "0.96" }
+
+# plotting
+plotters = "0.3.6"
