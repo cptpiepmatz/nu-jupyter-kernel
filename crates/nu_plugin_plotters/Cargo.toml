@@ -13,6 +13,7 @@ default = ["nu-plugin"]
 # nu
 nu-plugin = { version = "0.96", optional = true }
 nu-protocol = { version = "0.96" }
+nu-engine = { version = "0.96" }
 
 # plotting
 plotters = "0.3.6"
