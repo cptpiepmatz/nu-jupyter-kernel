@@ -1,4 +1,5 @@
 use nu_engine::command_prelude::*;
+use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
 use nu_protocol::LabeledError;
 
 #[derive(Debug, Clone)]
@@ -49,7 +50,7 @@ impl Command for Chart2d {
     }
 }
 
-impl nu_plugin::SimplePluginCommand for Chart2d {
+impl SimplePluginCommand for Chart2d {
     type Plugin = crate::plugin::PlottersPlugin;
 
     fn name(&self) -> &str {
@@ -71,8 +72,8 @@ impl nu_plugin::SimplePluginCommand for Chart2d {
     fn run(
         &self,
         plugin: &Self::Plugin,
-        engine: &nu_plugin::EngineInterface,
-        call: &nu_plugin::EvaluatedCall,
+        engine: &EngineInterface,
+        call: &EvaluatedCall,
         input: &Value,
     ) -> Result<Value, LabeledError> {
         todo!()

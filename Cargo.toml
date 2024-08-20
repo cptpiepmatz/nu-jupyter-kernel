@@ -29,7 +29,6 @@ members = ["crates/nu_plugin_plotters"]
 package = "nu_plugin_plotters"
 version = "0.1.0-wip"
 path = "crates/nu_plugin_plotters"
-default-features = false
 optional = true
 
 [dependencies]

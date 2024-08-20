@@ -6,12 +6,9 @@ repository.workspace = true
 license.workspace = true
 publish = false
 
-[features]
-default = ["nu-plugin"]
-
 [dependencies]
 # nu
-nu-plugin = { version = "0.96", optional = true }
+nu-plugin = { version = "0.96" }
 nu-protocol = { version = "0.96" }
 nu-engine = { version = "0.96" }
 
