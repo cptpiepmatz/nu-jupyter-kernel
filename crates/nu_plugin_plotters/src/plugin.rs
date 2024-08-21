@@ -1,4 +1,5 @@
 use nu_plugin::{Plugin, PluginCommand};
+
 use crate::commands;
 
 pub struct PlottersPlugin;
@@ -9,6 +10,9 @@ impl Plugin for PlottersPlugin {
     }
 
     fn commands(&self) -> Vec<Box<dyn PluginCommand<Plugin = Self>>> {
-        vec![Box::new(commands::series::LineSeries)]
+        vec![
+            Box::new(commands::series::LineSeries),
+            Box::new(commands::Chart2d),
+        ]
     }
 }

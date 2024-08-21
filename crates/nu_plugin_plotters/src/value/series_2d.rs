@@ -26,6 +26,28 @@ pub enum Series2dStyle {
     Line,
 }
 
+impl FromValue for Series2d {
+    fn from_value(v: Value) -> Result<Self, ShellError> {
+        let span = v.span();
+        let v = v.into_custom_value()?;
+        match v.as_any().downcast_ref::<Self>() {
+            Some(v) => Ok(v.clone()),
+            None => {
+                return Err(ShellError::CantConvert {
+                    to_type: Self::ty().to_string(),
+                    from_type: v.type_name(),
+                    span,
+                    help: None,
+                })
+            }
+        }
+    }
+
+    fn expected_type() -> Type {
+        Self::ty()
+    }
+}
+
 #[typetag::serde]
 impl CustomValue for Series2d {
     fn clone_value(&self, span: Span) -> Value {

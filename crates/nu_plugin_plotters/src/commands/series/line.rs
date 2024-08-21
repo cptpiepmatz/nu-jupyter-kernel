@@ -83,22 +83,14 @@ impl Command for LineSeries {
         call: &Call,
         input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
-        let input_span = input.span().unwrap_or(Span::unknown());
-        let input = input.into_value(input_span)?;
+        let span = input.span().unwrap_or(Span::unknown());
+        let input = input.into_value(span)?;
         let color = call.get_flag(engine_state, stack, "color")?;
         let filled = call.get_flag(engine_state, stack, "filled")?;
         let stroke_width = call.get_flag(engine_state, stack, "stroke-width")?;
         let point_size = call.get_flag(engine_state, stack, "point-size")?;
-        LineSeries::run(
-            self,
-            input,
-            color,
-            filled,
-            stroke_width,
-            point_size,
-            input_span,
-        )
-        .map(|v| PipelineData::Value(v, None))
+        LineSeries::run(self, input, color, filled, stroke_width, point_size)
+            .map(|v| PipelineData::Value(v, None))
     }
 }
 
@@ -128,7 +120,6 @@ impl nu_plugin::SimplePluginCommand for LineSeries {
         call: &EvaluatedCall,
         input: &Value,
     ) -> Result<Value, LabeledError> {
-        let span = input.span();
         let input = input.clone();
         let (mut color, mut filled, mut stroke_width, mut point_size) = Default::default();
         for (name, value) in call.named.clone() {
@@ -153,8 +144,7 @@ impl nu_plugin::SimplePluginCommand for LineSeries {
             }
         }
 
-        LineSeries::run(self, input, color, filled, stroke_width, point_size, span)
-            .map_err(Into::into)
+        LineSeries::run(self, input, color, filled, stroke_width, point_size).map_err(Into::into)
     }
 }
 
@@ -166,8 +156,8 @@ impl LineSeries {
         filled: Option<bool>,
         stroke_width: Option<u32>,
         point_size: Option<u32>,
-        input_span: Span,
     ) -> Result<Value, ShellError> {
+        let input_span = input.span();
         let input = input.into_list()?;
         let first = input
             .get(0)
