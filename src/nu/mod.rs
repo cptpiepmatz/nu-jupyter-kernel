@@ -23,6 +23,9 @@ pub fn initial_engine_state() -> EngineState {
     let engine_state = add_env_context(engine_state);
     let engine_state = configure_engine_state(engine_state);
 
+    #[cfg(feature = "nu-plotters")]
+    let engine_state = nu_plotters::add_plotters_command_context(engine_state);
+
     // this doesn't add the jupyter context, as they need more context
 
     engine_state

@@ -2,6 +2,8 @@ use nu_engine::command_prelude::*;
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
 use nu_protocol::LabeledError;
 
+use crate::value;
+
 #[derive(Debug, Clone)]
 pub struct Chart2d;
 
@@ -11,24 +13,53 @@ impl Command for Chart2d {
     }
 
     fn signature(&self) -> Signature {
-        // Signature::new(self.name())
-        //     .usage(self.usage())
-        //     .search_terms(self.search_terms().into_iter().map(ToOwned::to_owned).
-        // collect())     .named("color", crate::value::color::syntax_shape(),
-        // "Define the color of the points and the line. For valid color inputs, refer
-        // to `plotters colors --help`.", Some('c'))     .named("filled",
-        // SyntaxShape::Boolean, "Define whether the points in the series should be
-        // filled.", Some('f'))     .named("stroke-width", SyntaxShape::Int,
-        // "Define the width of the stroke.", Some('s'))     .named("point-size"
-        // , SyntaxShape::Int, "Define the size of the points in pixels.", Some('p'))
-        //     .input_output_type(Type::ListStream, todo!("series type"))
-        //     .input_output_type(Type::list(Type::Number), todo!())
-        //     .input_output_type(Type::list(Type::list(Type::Number)), todo!())
-        //     .input_output_type(Type::list(Type::Record(vec![
-        //         ("x".to_string(), Type::Number),
-        //         ("y".to_string(), Type::Number)
-        //     ].into_boxed_slice())), todo!())
-        todo!()
+        Signature::new(Command::name(self))
+            .add_help()
+            .usage(Command::usage(self))
+            .extra_usage(Command::extra_usage(self))
+            .search_terms(
+                Command::search_terms(self)
+                    .into_iter()
+                    .map(ToOwned::to_owned)
+                    .collect(),
+            )
+            .named(
+                "color",
+                crate::value::color::Color::syntax_shape(),
+                "Define the color of the points and the line. For valid color inputs, refer to \
+                 `plotters colors --help`.",
+                Some('c'),
+            )
+            .named(
+                "filled",
+                SyntaxShape::Boolean,
+                "Define whether the points in the series should be filled.",
+                Some('f'),
+            )
+            .named(
+                "stroke-width",
+                SyntaxShape::Int,
+                "Define the width of the stroke.",
+                Some('s'),
+            )
+            .named(
+                "point-size",
+                SyntaxShape::Int,
+                "Define the size of the points in pixels.",
+                Some('p'),
+            )
+            .input_output_type(Type::list(Type::Number), Series2d::ty())
+            .input_output_type(Type::list(Type::list(Type::Number)), Series2d::ty())
+            .input_output_type(
+                Type::list(Type::Record(
+                    vec![
+                        ("x".to_string(), Type::Number),
+                        ("y".to_string(), Type::Number),
+                    ]
+                    .into_boxed_slice(),
+                )),
+                value::chart_2d::Chart2d::ty(),
+            )
     }
 
     fn usage(&self) -> &str {

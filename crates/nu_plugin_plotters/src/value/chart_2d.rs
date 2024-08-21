@@ -1,33 +1,27 @@
 use std::any::Any;
 
-use nu_protocol::{CustomValue, FromValue, IntoValue, ShellError, Span, Type, Value};
+use nu_protocol::{CustomValue, IntoValue, ShellError, Span, Type, Value};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, IntoValue, FromValue, Serialize, Deserialize)]
+use super::color::Color;
+use super::series_2d::Series2d;
+
+#[derive(Debug, Clone, IntoValue, Serialize, Deserialize)]
 pub struct Chart2d {
-    pub series: Vec<Coord2d>,
-    pub style: Series2dStyle,
-}
-
-#[derive(Debug, Clone, IntoValue, FromValue, Serialize, Deserialize)]
-pub struct Coord2d {
-    pub x: f64,
-    pub y: f64,
-}
-
-#[derive(Debug, Clone, IntoValue, FromValue, Serialize, Deserialize)]
-pub enum Series2dStyle {
-    Line,
+    pub series: Vec<Series2d>,
+    pub width: u32,
+    pub height: u32,
+    pub background: Option<Color>,
+    pub caption: Option<String>,
 }
 
 #[typetag::serde]
-impl CustomValue for Series2d {
+impl CustomValue for Chart2d {
     fn clone_value(&self, span: Span) -> Value {
         Value::custom(Box::new(self.clone()), span)
     }
 
     fn type_name(&self) -> String {
-        // when nushell#13647 lands, use FromValue::expected_type()
         Self::ty().to_string()
     }
 
@@ -44,8 +38,8 @@ impl CustomValue for Series2d {
     }
 }
 
-impl Series2d {
+impl Chart2d {
     pub fn ty() -> Type {
-        Type::Custom("plotters::series-2d".to_string().into_boxed_str())
+        Type::Custom("plotters::chart-2d".to_string().into_boxed_str())
     }
 }

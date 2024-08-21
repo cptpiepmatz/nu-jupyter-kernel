@@ -1,7 +1,8 @@
 use nu_protocol::{FromValue, IntoValue, ShellError, Span, SyntaxShape, Type, Value};
 use plotters::style::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, IntoValue)]
+#[derive(Debug, Clone, IntoValue, Serialize, Deserialize)]
 pub struct Color {
     pub r: ColorChannel,
     pub g: ColorChannel,
@@ -117,8 +118,8 @@ impl From<Color> for plotters::style::RGBAColor {
     }
 }
 
-#[derive(Debug, Clone)]
-struct ColorChannel(u8);
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ColorChannel(u8);
 
 impl IntoValue for ColorChannel {
     fn into_value(self, span: Span) -> Value {
@@ -157,8 +158,8 @@ impl FromValue for ColorChannel {
     }
 }
 
-#[derive(Debug, Clone)]
-struct AlphaChannel(f64);
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AlphaChannel(f64);
 
 impl IntoValue for AlphaChannel {
     fn into_value(self, span: Span) -> Value {

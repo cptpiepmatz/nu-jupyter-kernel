@@ -1,2 +1,4 @@
+pub mod series;
+
 mod chart_2d;
-mod series;
+pub use chart_2d::Chart2d;
