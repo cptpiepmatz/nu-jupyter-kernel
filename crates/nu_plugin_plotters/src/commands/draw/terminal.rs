@@ -1,16 +1,17 @@
+use icy_sixel::{DiffusionMethod, MethodForLargest, MethodForRep, PixelFormat, Quality};
 use nu_engine::command_prelude::*;
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{FromValue, LabeledError};
-use plotters::prelude::{IntoDrawingArea, SVGBackend};
+use plotters::{prelude::{BitMapBackend, IntoDrawingArea}, style::WHITE};
 
 use crate::value;
 
 #[derive(Debug, Clone)]
-pub struct DrawSvg;
+pub struct DrawTerminal;
 
-impl Command for DrawSvg {
+impl Command for DrawTerminal {
     fn name(&self) -> &str {
-        "draw svg"
+        "draw terminal"
     }
 
     fn signature(&self) -> Signature {
@@ -27,11 +28,11 @@ impl Command for DrawSvg {
     }
 
     fn usage(&self) -> &str {
-        "Draws a chart on a SVG string."
+        "Draws a chart to a sixel string. Compatible terminal emulators may render that."
     }
 
     fn search_terms(&self) -> Vec<&str> {
-        vec!["plotters", "chart", "2d", "draw", "svg"]
+        vec!["plotters", "chart", "2d", "draw", "terminal"]
     }
 
     fn run(
@@ -43,11 +44,11 @@ impl Command for DrawSvg {
     ) -> Result<PipelineData, ShellError> {
         let span = input.span().unwrap_or(Span::unknown());
         let input = input.into_value(span)?;
-        DrawSvg::run(self, input).map(|v| PipelineData::Value(v, None))
+        DrawTerminal::run(self, input).map(|v| PipelineData::Value(v, None))
     }
 }
 
-impl SimplePluginCommand for DrawSvg {
+impl SimplePluginCommand for DrawTerminal {
     type Plugin = crate::plugin::PlottersPlugin;
 
     fn name(&self) -> &str {
@@ -74,18 +75,39 @@ impl SimplePluginCommand for DrawSvg {
         input: &Value,
     ) -> Result<Value, LabeledError> {
         let input = input.clone();
-        DrawSvg::run(self, input).map_err(Into::into)
+        DrawTerminal::run(self, input).map_err(Into::into)
     }
 }
 
-impl DrawSvg {
+impl DrawTerminal {
     fn run(&self, input: Value) -> Result<Value, ShellError> {
         let span = input.span();
-        let chart = value::Chart2d::from_value(input)?;
+        let mut chart = value::Chart2d::from_value(input)?;
 
-        let mut output = String::new();
-        let drawing_backend = SVGBackend::with_string(&mut output, (chart.width, chart.height));
+        const BYTES_PER_PIXEL: u32 = 3;
+        let bytes = chart.height * chart.width * BYTES_PER_PIXEL;
+        let mut buf: Vec<u8> = vec![0; bytes as usize];
+
+        let size = (chart.width, chart.height);
+        let drawing_backend = BitMapBackend::with_buffer(&mut buf, size);
+
+        if chart.background.is_none() {
+            chart.background = Some(WHITE.into());
+        }
+
         super::draw(chart, drawing_backend.into_drawing_area());
+
+        let output = icy_sixel::sixel_string(
+            &buf,
+            size.0 as i32,
+            size.1 as i32,
+            PixelFormat::RGB888,
+            DiffusionMethod::Stucki,
+            MethodForLargest::Auto,
+            MethodForRep::Auto,
+            Quality::HIGH,
+        )
+        .unwrap(); // TODO: convert that error somehow into shell error
 
         Ok(Value::string(output, span))
     }

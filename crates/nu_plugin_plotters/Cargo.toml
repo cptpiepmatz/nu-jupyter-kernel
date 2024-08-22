@@ -19,5 +19,8 @@ plotters = "0.3.6"
 serde = { version = "1", features = ["derive"] }
 typetag = "0.2"
 
+# drawing to the terminal
+icy_sixel = "0.1"
+
 # misc
 indoc = "2"

@@ -1445,6 +1445,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "icy_sixel"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86858ae800284d596cfdefcb0ad435c3493c12f35367431bbe9b2b3858c1155b"
+
+[[package]]
 name = "idna"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2430,6 +2436,7 @@ dependencies = [
 name = "nu_plugin_plotters"
 version = "0.1.0-wip"
 dependencies = [
+ "icy_sixel",
  "indoc",
  "nu-engine",
  "nu-plugin",

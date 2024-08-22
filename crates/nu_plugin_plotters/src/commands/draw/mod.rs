@@ -9,6 +9,9 @@ use crate::value;
 mod svg;
 pub use svg::*;
 
+mod terminal;
+pub use terminal::*;
+
 fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB, Shift>) {
     if chart.series.is_empty() {
         todo!("return some error that empty series do not work")

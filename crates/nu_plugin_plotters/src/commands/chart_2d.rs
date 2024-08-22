@@ -41,7 +41,7 @@ impl Command for Chart2d {
                 Some('H'),
             )
             .named(
-                "background-color",
+                "background",
                 SyntaxShape::Any,
                 "Set the background color of the chart.",
                 Some('b'),

@@ -14,6 +14,7 @@ impl Plugin for PlottersPlugin {
             Box::new(commands::series::LineSeries),
             Box::new(commands::Chart2d),
             Box::new(commands::draw::DrawSvg),
+            Box::new(commands::draw::DrawTerminal),
         ]
     }
 }
