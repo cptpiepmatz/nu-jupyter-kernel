@@ -26,7 +26,7 @@ impl Command for LineSeries {
             )
             .named(
                 "color",
-                crate::value::Color::syntax_shape(),
+                SyntaxShape::Any,
                 "Define the color of the points and the line. For valid color inputs, refer to \
                  `plotters colors --help`.",
                 Some('c'),

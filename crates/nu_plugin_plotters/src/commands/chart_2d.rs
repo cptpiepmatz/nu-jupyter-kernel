@@ -42,7 +42,7 @@ impl Command for Chart2d {
             )
             .named(
                 "background-color",
-                value::Color::syntax_shape(),
+                SyntaxShape::Any,
                 "Set the background color of the chart.",
                 Some('b'),
             )
@@ -52,15 +52,21 @@ impl Command for Chart2d {
                 "Set a caption for the chart.",
                 Some('c'),
             )
+            .named(
+                "margin",
+                SyntaxShape::List(Box::new(SyntaxShape::Int)),
+                "Set the margin for the chart, refer to css margin shorthands for setting values.",
+                Some('m'),
+            )
+            .named(
+                "label-area",
+                SyntaxShape::List(Box::new(SyntaxShape::Int)),
+                "Set the area size for the chart, refer to css margin shorthands for setting values.",
+                Some('l')
+            )
             .input_output_type(Type::Nothing, value::Chart2d::ty())
-            .input_output_type(
-                value::Series2d::ty(),
-                value::Chart2d::ty(),
-            )
-            .input_output_type(
-                Type::list(value::Series2d::ty()),
-                value::Chart2d::ty(),
-            )
+            .input_output_type(value::Series2d::ty(), value::Chart2d::ty())
+            .input_output_type(Type::list(value::Series2d::ty()), value::Chart2d::ty())
     }
 
     fn usage(&self) -> &str {
@@ -91,7 +97,9 @@ impl Command for Chart2d {
         let height = call.get_flag(engine_state, stack, "height")?;
         let background = call.get_flag(engine_state, stack, "background")?;
         let caption = call.get_flag(engine_state, stack, "caption")?;
-        Chart2d::run(self, input, extend, width, height, background, caption)
+        let margin = call.get_flag(engine_state, stack, "margin")?;
+        let label_area = call.get_flag(engine_state, stack, "label-area")?;
+        Chart2d::run(self, input, extend, Chart2dOptions {width, height, background, caption, margin, label_area })
             .map(|v| PipelineData::Value(v, None))
     }
 }
@@ -128,7 +136,8 @@ impl SimplePluginCommand for Chart2d {
             .first()
             .map(|v| <value::Chart2d>::from_value(v.clone()))
             .transpose()?;
-        let (mut width, mut height, mut background, mut caption) = Default::default();
+
+        let mut options = Chart2dOptions::default();
         for (name, value) in call.named.clone() {
             // TODO: put this function somewhere reusable
             fn extract_named<T: FromValue>(
@@ -144,16 +153,28 @@ impl SimplePluginCommand for Chart2d {
             }
 
             match name.item.as_str() {
-                "width" => width = extract_named("width", value, name.span)?,
-                "height" => height = extract_named("height", value, name.span)?,
-                "background" => background = extract_named("background", value, name.span)?,
-                "caption" => caption = extract_named("caption", value, name.span)?,
+                "width" => options.width = extract_named("width", value, name.span)?,
+                "height" => options.height = extract_named("height", value, name.span)?,
+                "background" => options.background = extract_named("background", value, name.span)?,
+                "caption" => options.caption = extract_named("caption", value, name.span)?,
+                "margin" => options.margin = extract_named("margin", value, name.span)?,
+                "label-area" => options.label_area = extract_named("label-area", value, name.span)?,
                 _ => continue,
             }
         }
 
-        Chart2d::run(self, input, extend, width, height, background, caption).map_err(Into::into)
+        Chart2d::run(self, input, extend, options).map_err(Into::into)
     }
+}
+
+#[derive(Debug, Default)]
+struct Chart2dOptions {
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub background: Option<value::Color>,
+    pub caption: Option<String>,
+    pub margin: Option<Vec<u32>>,
+    pub label_area: Option<Vec<u32>>,
 }
 
 impl Chart2d {
@@ -161,24 +182,36 @@ impl Chart2d {
         &self,
         input: Value,
         extend: Option<value::Chart2d>,
-        width: Option<u32>,
-        height: Option<u32>,
-        background: Option<value::Color>,
-        caption: Option<String>,
+        options: Chart2dOptions,
     ) -> Result<Value, ShellError> {
         let span = input.span();
         let mut input = match input {
             v @ Value::Custom { .. } => vec![value::Series2d::from_value(v)?],
             v @ Value::List { .. } => Vec::from_value(v)?,
-            _ => todo!("handle invalid input")
+            _ => todo!("handle invalid input"),
         };
 
         let mut chart = extend.unwrap_or_default();
         chart.series.append(&mut input);
-        chart.width = width.unwrap_or(chart.width);
-        chart.height = height.unwrap_or(chart.height);
-        chart.background = background.or(chart.background);
-        chart.caption = caption.or(chart.caption);
+        chart.width = options.width.unwrap_or(chart.width);
+        chart.height = options.height.unwrap_or(chart.height);
+        chart.background = options.background.or(chart.background);
+        chart.caption = options.caption.or(chart.caption);
+        chart.margin = options.margin.map(side_shorthand).transpose()?.unwrap_or(chart.margin);
+        chart.label_area = options.label_area.map(side_shorthand).transpose()?.unwrap_or(chart.label_area);
+        
         Ok(Value::custom(Box::new(chart), span))
     }
+}
+
+fn side_shorthand<T: Copy>(input: Vec<T>) -> Result<[T; 4], ShellError> {
+    let mut iter = input.into_iter();
+    Ok(match (iter.next(), iter.next(), iter.next(), iter.next()) {
+        (Some(a), None, None, None) => [a, a, a, a],
+        (Some(a), Some(b), None, None) => [a, b, a, b],
+        (Some(a), Some(b), Some(c), None) => [a, b, b, c],
+        (Some(a), Some(b), Some(c), Some(d)) => [a, b, c, d],
+        (None, None, None, None) => todo!("throw error for empty list"),
+        _ => unreachable!("all other variants are not possible with lists")
+    })
 }

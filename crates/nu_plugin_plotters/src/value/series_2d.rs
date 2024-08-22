@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::cmp;
 
 use nu_protocol::{CustomValue, FromValue, IntoValue, ShellError, Span, Type, Value};
 use serde::{Deserialize, Serialize};
@@ -71,8 +72,26 @@ impl CustomValue for Series2d {
     }
 }
 
+macro_rules! xy_range {
+    ($fn_name:ident: $xy:ident) => {
+        pub fn $fn_name(&self) -> Option<(f64, f64)> {
+            let first = self.series.first()?;
+            let (mut min, mut max) = (first.$xy, first.$xy);
+            for $xy in self.series.iter().map(|c| c.$xy) {
+                if $xy < min { min = $xy }
+                if $xy > max { max = $xy }
+            }
+            
+            Some((min, max))
+        }
+    };
+}
+
 impl Series2d {
     pub fn ty() -> Type {
         Type::Custom("plotters::series-2d".to_string().into_boxed_str())
     }
+
+    xy_range!(x_range: x);
+    xy_range!(y_range: y);
 }

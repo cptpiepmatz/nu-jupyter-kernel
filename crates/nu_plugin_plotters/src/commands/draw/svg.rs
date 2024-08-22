@@ -1,7 +1,10 @@
 use nu_engine::command_prelude::*;
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{FromValue, LabeledError};
-use plotters::{chart::ChartBuilder, prelude::{IntoDrawingArea, SVGBackend}, series::LineSeries, style::{RGBAColor, ShapeStyle}};
+use plotters::chart::ChartBuilder;
+use plotters::prelude::{IntoDrawingArea, SVGBackend};
+use plotters::series::LineSeries;
+use plotters::style::{RGBAColor, ShapeStyle};
 
 use crate::value::{self, Coord2d, Series2d};
 
@@ -85,25 +88,47 @@ impl DrawSvg {
         let mut output = String::new();
 
         {
-            let drawing_area = SVGBackend::with_string(&mut output, (chart.width, chart.height)).into_drawing_area();
+            if chart.series.is_empty() {
+                todo!("return some error that empty series do not work")
+            }
+
+            let x_spec = chart.x_range().map(|(min, max)| min..max).expect("not empty");
+            let y_spec = chart.y_range().map(|(min, max)| min..max).expect("not empty");
+
+            let drawing_area = SVGBackend::with_string(&mut output, (chart.width, chart.height))
+                .into_drawing_area();
             if let Some(color) = chart.background {
                 let color: RGBAColor = color.into();
                 drawing_area.fill(&color).unwrap();
             }
-    
+
             let mut chart_builder = ChartBuilder::on(&drawing_area);
-            let mut chart_context = chart_builder.build_cartesian_2d(0.0..10.0, 0.0..10.0).unwrap();
+            let mut chart_context = chart_builder
+                .build_cartesian_2d(x_spec, y_spec)
+                .unwrap();
             chart_context.configure_mesh().draw().unwrap();
-            for Series2d { series, style, color, filled, stroke_width, point_size } in chart.series {
+            for Series2d {
+                series,
+                style,
+                color,
+                filled,
+                stroke_width,
+                point_size,
+            } in chart.series
+            {
                 match style {
                     value::Series2dStyle::Line => {
-                        let series = LineSeries::new(series.into_iter().map(|Coord2d { x, y}| (x, y)), ShapeStyle {
-                            color: color.into(),
-                            filled,
-                            stroke_width
-                        }).point_size(point_size);
+                        let series = LineSeries::new(
+                            series.into_iter().map(|Coord2d { x, y }| (x, y)),
+                            ShapeStyle {
+                                color: color.into(),
+                                filled,
+                                stroke_width,
+                            },
+                        )
+                        .point_size(point_size);
                         chart_context.draw_series(series).unwrap();
-                    },
+                    }
                 }
             }
         }

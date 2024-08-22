@@ -80,27 +80,6 @@ impl FromValue for Color {
     }
 }
 
-impl Color {
-    pub fn syntax_shape() -> SyntaxShape {
-        SyntaxShape::OneOf(vec![
-            SyntaxShape::List(Box::new(SyntaxShape::Int)),
-            SyntaxShape::List(Box::new(SyntaxShape::Number)),
-            SyntaxShape::Record(vec![
-                ("r".to_string(), SyntaxShape::Int),
-                ("g".to_string(), SyntaxShape::Int),
-                ("b".to_string(), SyntaxShape::Int),
-            ]),
-            SyntaxShape::Record(vec![
-                ("r".to_string(), SyntaxShape::Int),
-                ("g".to_string(), SyntaxShape::Int),
-                ("b".to_string(), SyntaxShape::Int),
-                ("a".to_string(), SyntaxShape::Float),
-            ]),
-            SyntaxShape::String,
-        ])
-    }
-}
-
 impl From<RGBColor> for Color {
     fn from(value: RGBColor) -> Self {
         Self {

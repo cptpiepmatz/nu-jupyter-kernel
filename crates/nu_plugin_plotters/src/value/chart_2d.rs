@@ -13,16 +13,20 @@ pub struct Chart2d {
     pub height: u32,
     pub background: Option<Color>,
     pub caption: Option<String>,
+    pub margin: [u32; 4], // use css shorthand rotation [top, right, bottom, left]
+    pub label_area: [u32; 4],
 }
 
 impl Default for Chart2d {
     fn default() -> Self {
-        Self { 
-            series: Vec::new(), 
-            width: 600, 
-            height: 400, 
-            background: None, 
-            caption: None 
+        Self {
+            series: Vec::new(),
+            width: 600,
+            height: 400,
+            background: None,
+            caption: None,
+            margin: [5, 5, 5, 5],
+            label_area: [0, 0, 35, 35]
         }
     }
 }
@@ -72,8 +76,26 @@ impl CustomValue for Chart2d {
     }
 }
 
+macro_rules! xy_range {
+    ($fn_name:ident) => {
+        pub fn $fn_name(&self) -> Option<(f64, f64)> {
+            let first = self.series.first()?;
+            let (mut min, mut max) = first.$fn_name()?;
+            for (s_min, s_max) in self.series.iter().filter_map(|s| s.$fn_name()) {
+                if s_min < min { min = s_min }
+                if s_max > max { max = s_max }
+            }
+    
+            Some((min, max))
+        }
+    };
+}
+
 impl Chart2d {
     pub fn ty() -> Type {
         Type::Custom("plotters::chart-2d".to_string().into_boxed_str())
     }
+
+    xy_range!(x_range);
+    xy_range!(y_range);
 }
