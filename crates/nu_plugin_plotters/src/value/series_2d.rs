@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::cmp;
 
 use nu_protocol::{CustomValue, FromValue, IntoValue, ShellError, Span, Type, Value};
 use serde::{Deserialize, Serialize};

@@ -1,6 +1,6 @@
 use nu_engine::command_prelude::*;
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
-use nu_protocol::{FromValue, IntoValue, LabeledError};
+use nu_protocol::{FromValue, LabeledError};
 
 use crate::value;
 

@@ -1,4 +1,4 @@
-use nu_protocol::{FromValue, IntoValue, ShellError, Span, SyntaxShape, Type, Value};
+use nu_protocol::{FromValue, IntoValue, ShellError, Span, Type, Value};
 use plotters::style::*;
 use serde::{Deserialize, Serialize};
 
