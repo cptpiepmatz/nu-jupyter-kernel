@@ -8,9 +8,9 @@ publish = false
 
 [dependencies]
 # nu
-nu-plugin = { version = "0.96" }
-nu-protocol = { version = "0.96" }
-nu-engine = { version = "0.96" }
+nu-plugin = { version = "0.97" }
+nu-protocol = { version = "0.97" }
+nu-engine = { version = "0.97" }
 
 # plotting
 plotters = "0.3.6"

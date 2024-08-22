@@ -33,13 +33,13 @@ optional = true
 
 [dependencies]
 # nu
-nu-cmd-extra = { version = "0.96" }
-nu-cmd-lang = { version = "0.96" }
-nu-cmd-plugin = { version = "0.96" }
-nu-command = { version = "0.96", features = ["plugin"] }
-nu-engine = { version = "0.96" }
-nu-parser = { version = "0.96", features = ["plugin"] }
-nu-protocol = { version = "0.96", features = ["plugin"] }
+nu-cmd-extra = { version = "0.97" }
+nu-cmd-lang = { version = "0.97" }
+nu-cmd-plugin = { version = "0.97" }
+nu-command = { version = "0.97", features = ["plugin"] }
+nu-engine = { version = "0.97" }
+nu-parser = { version = "0.97", features = ["plugin"] }
+nu-protocol = { version = "0.97", features = ["plugin"] }
 
 # Cryptography and Security
 hmac = "0.12.1"
