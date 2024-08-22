@@ -3,8 +3,7 @@ use nu_plugin::{EngineInterface, EvaluatedCall};
 use nu_protocol::{FromValue, LabeledError};
 use plotters::style::BLUE;
 
-use crate::value::color::Color;
-use crate::value::series_2d::{Coord2d, Series2d, Series2dStyle};
+use crate::value::{Color, Coord2d, Series2d, Series2dStyle};
 
 #[derive(Debug, Clone)]
 pub struct LineSeries;
@@ -27,7 +26,7 @@ impl Command for LineSeries {
             )
             .named(
                 "color",
-                crate::value::color::Color::syntax_shape(),
+                crate::value::Color::syntax_shape(),
                 "Define the color of the points and the line. For valid color inputs, refer to \
                  `plotters colors --help`.",
                 Some('c'),

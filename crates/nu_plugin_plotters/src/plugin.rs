@@ -13,6 +13,7 @@ impl Plugin for PlottersPlugin {
         vec![
             Box::new(commands::series::LineSeries),
             Box::new(commands::Chart2d),
+            Box::new(commands::draw::DrawSvg)
         ]
     }
 }

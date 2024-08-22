@@ -20,7 +20,7 @@ impl Default for Chart2d {
         Self { 
             series: Vec::new(), 
             width: 600, 
-            height: 800, 
+            height: 400, 
             background: None, 
             caption: None 
         }

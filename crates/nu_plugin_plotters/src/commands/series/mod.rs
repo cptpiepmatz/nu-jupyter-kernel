@@ -1,3 +1,3 @@
 mod line;
 
-pub use line::LineSeries;
+pub use line::*;

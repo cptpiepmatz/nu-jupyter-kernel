@@ -8,6 +8,8 @@ use nu_protocol::engine::{Command, EngineState, Stack};
 use nu_protocol::{PipelineData, ShellError, Span, Spanned, Value};
 use thiserror::Error;
 
+use nu_plotters::commands::draw::DrawSvg;
+
 macro_rules! create_format_decl_ids {
     ($($field:ident : $search_str:expr),+ $(,)?) => {
         #[derive(Debug, Clone, Copy)]
@@ -46,6 +48,8 @@ create_format_decl_ids!(
     to_html: "to html",
     to_md: "to md",
     table: "table",
+    // TODO: make this feature flagged
+    draw_svg: "draw svg"
 );
 
 fn flag(flag: impl Into<String>) -> Argument {
@@ -200,6 +204,16 @@ impl PipelineRender {
         if match_filter(md_mime.clone()) {
             match Self::render_via_cmd(&value, ToMd, format_decl_ids.to_md, engine_state, stack) {
                 Ok(Some(s)) => data.insert(md_mime, s),
+                Ok(None) | Err(InternalRenderError::Eval(_)) => None,
+                Err(_) => None, // TODO: print the error
+            };
+        }
+
+        // TODO: feature flag this
+        if match_filter(mime::IMAGE_SVG) {
+            match Self::render_via_cmd(&value, DrawSvg, format_decl_ids.draw_svg, engine_state, stack)
+            {
+                Ok(Some(s)) => data.insert(mime::IMAGE_SVG, s),
                 Ok(None) | Err(InternalRenderError::Eval(_)) => None,
                 Err(_) => None, // TODO: print the error
             };

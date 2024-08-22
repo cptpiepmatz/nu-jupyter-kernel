@@ -25,24 +25,24 @@ impl Command for Chart2d {
             )
             .optional(
                 "chart",
-                value::chart_2d::Chart2d::ty().to_shape(),
+                value::Chart2d::ty().to_shape(),
                 "Baseline chart to extend from.",
             )
             .named(
                 "width",
                 SyntaxShape::Int,
                 "Set the width of the chart in pixels.",
-                Some('w'),
+                Some('W'),
             )
             .named(
                 "height",
                 SyntaxShape::Int,
                 "Set the height of the chart in pixels.",
-                Some('h'),
+                Some('H'),
             )
             .named(
                 "background-color",
-                value::color::Color::syntax_shape(),
+                value::Color::syntax_shape(),
                 "Set the background color of the chart.",
                 Some('b'),
             )
@@ -52,14 +52,14 @@ impl Command for Chart2d {
                 "Set a caption for the chart.",
                 Some('c'),
             )
-            .input_output_type(Type::Nothing, value::chart_2d::Chart2d::ty())
+            .input_output_type(Type::Nothing, value::Chart2d::ty())
             .input_output_type(
-                value::series_2d::Series2d::ty(),
-                value::chart_2d::Chart2d::ty(),
+                value::Series2d::ty(),
+                value::Chart2d::ty(),
             )
             .input_output_type(
-                Type::list(value::series_2d::Series2d::ty()),
-                value::chart_2d::Chart2d::ty(),
+                Type::list(value::Series2d::ty()),
+                value::Chart2d::ty(),
             )
     }
 
@@ -126,7 +126,7 @@ impl SimplePluginCommand for Chart2d {
         let extend = call
             .positional
             .first()
-            .map(|v| <value::chart_2d::Chart2d>::from_value(v.clone()))
+            .map(|v| <value::Chart2d>::from_value(v.clone()))
             .transpose()?;
         let (mut width, mut height, mut background, mut caption) = Default::default();
         for (name, value) in call.named.clone() {
@@ -160,15 +160,15 @@ impl Chart2d {
     fn run(
         &self,
         input: Value,
-        extend: Option<value::chart_2d::Chart2d>,
+        extend: Option<value::Chart2d>,
         width: Option<u32>,
         height: Option<u32>,
-        background: Option<value::color::Color>,
+        background: Option<value::Color>,
         caption: Option<String>,
     ) -> Result<Value, ShellError> {
         let span = input.span();
         let mut input = match input {
-            v @ Value::Custom { .. } => vec![value::series_2d::Series2d::from_value(v)?],
+            v @ Value::Custom { .. } => vec![value::Series2d::from_value(v)?],
             v @ Value::List { .. } => Vec::from_value(v)?,
             _ => todo!("handle invalid input")
         };
@@ -179,6 +179,6 @@ impl Chart2d {
         chart.height = height.unwrap_or(chart.height);
         chart.background = background.or(chart.background);
         chart.caption = caption.or(chart.caption);
-        Ok(chart.into_value(span))
+        Ok(Value::custom(Box::new(chart), span))
     }
 }
