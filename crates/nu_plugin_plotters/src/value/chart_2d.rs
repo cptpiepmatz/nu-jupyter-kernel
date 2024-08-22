@@ -26,7 +26,7 @@ impl Default for Chart2d {
             background: None,
             caption: None,
             margin: [5, 5, 5, 5],
-            label_area: [0, 0, 35, 35]
+            label_area: [0, 0, 35, 35],
         }
     }
 }
@@ -82,20 +82,25 @@ macro_rules! xy_range {
             let first = self.series.first()?;
             let (mut min, mut max) = first.$fn_name()?;
             for (s_min, s_max) in self.series.iter().filter_map(|s| s.$fn_name()) {
-                if s_min < min { min = s_min }
-                if s_max > max { max = s_max }
+                if s_min < min {
+                    min = s_min
+                }
+                if s_max > max {
+                    max = s_max
+                }
             }
-    
+
             Some((min, max))
         }
     };
 }
 
 impl Chart2d {
+    xy_range!(x_range);
+
+    xy_range!(y_range);
+
     pub fn ty() -> Type {
         Type::Custom("plotters::chart-2d".to_string().into_boxed_str())
     }
-
-    xy_range!(x_range);
-    xy_range!(y_range);
 }

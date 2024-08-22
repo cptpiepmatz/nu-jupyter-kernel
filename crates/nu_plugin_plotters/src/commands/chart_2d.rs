@@ -61,8 +61,9 @@ impl Command for Chart2d {
             .named(
                 "label-area",
                 SyntaxShape::List(Box::new(SyntaxShape::Int)),
-                "Set the area size for the chart, refer to css margin shorthands for setting values.",
-                Some('l')
+                "Set the area size for the chart, refer to css margin shorthands for setting \
+                 values.",
+                Some('l'),
             )
             .input_output_type(Type::Nothing, value::Chart2d::ty())
             .input_output_type(value::Series2d::ty(), value::Chart2d::ty())
@@ -99,8 +100,15 @@ impl Command for Chart2d {
         let caption = call.get_flag(engine_state, stack, "caption")?;
         let margin = call.get_flag(engine_state, stack, "margin")?;
         let label_area = call.get_flag(engine_state, stack, "label-area")?;
-        Chart2d::run(self, input, extend, Chart2dOptions {width, height, background, caption, margin, label_area })
-            .map(|v| PipelineData::Value(v, None))
+        Chart2d::run(self, input, extend, Chart2dOptions {
+            width,
+            height,
+            background,
+            caption,
+            margin,
+            label_area,
+        })
+        .map(|v| PipelineData::Value(v, None))
     }
 }
 
@@ -197,9 +205,17 @@ impl Chart2d {
         chart.height = options.height.unwrap_or(chart.height);
         chart.background = options.background.or(chart.background);
         chart.caption = options.caption.or(chart.caption);
-        chart.margin = options.margin.map(side_shorthand).transpose()?.unwrap_or(chart.margin);
-        chart.label_area = options.label_area.map(side_shorthand).transpose()?.unwrap_or(chart.label_area);
-        
+        chart.margin = options
+            .margin
+            .map(side_shorthand)
+            .transpose()?
+            .unwrap_or(chart.margin);
+        chart.label_area = options
+            .label_area
+            .map(side_shorthand)
+            .transpose()?
+            .unwrap_or(chart.label_area);
+
         Ok(Value::custom(Box::new(chart), span))
     }
 }
@@ -212,6 +228,6 @@ fn side_shorthand<T: Copy>(input: Vec<T>) -> Result<[T; 4], ShellError> {
         (Some(a), Some(b), Some(c), None) => [a, b, b, c],
         (Some(a), Some(b), Some(c), Some(d)) => [a, b, c, d],
         (None, None, None, None) => todo!("throw error for empty list"),
-        _ => unreachable!("all other variants are not possible with lists")
+        _ => unreachable!("all other variants are not possible with lists"),
     })
 }

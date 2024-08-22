@@ -77,20 +77,25 @@ macro_rules! xy_range {
             let first = self.series.first()?;
             let (mut min, mut max) = (first.$xy, first.$xy);
             for $xy in self.series.iter().map(|c| c.$xy) {
-                if $xy < min { min = $xy }
-                if $xy > max { max = $xy }
+                if $xy < min {
+                    min = $xy
+                }
+                if $xy > max {
+                    max = $xy
+                }
             }
-            
+
             Some((min, max))
         }
     };
 }
 
 impl Series2d {
+    xy_range!(x_range: x);
+
+    xy_range!(y_range: y);
+
     pub fn ty() -> Type {
         Type::Custom("plotters::series-2d".to_string().into_boxed_str())
     }
-
-    xy_range!(x_range: x);
-    xy_range!(y_range: y);
 }
