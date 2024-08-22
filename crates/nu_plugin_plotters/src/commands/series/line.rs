@@ -108,6 +108,10 @@ impl nu_plugin::SimplePluginCommand for LineSeries {
         Command::usage(self)
     }
 
+    fn extra_usage(&self) -> &str {
+        Command::extra_usage(self)
+    }
+
     fn search_terms(&self) -> Vec<&str> {
         Command::search_terms(self)
     }
