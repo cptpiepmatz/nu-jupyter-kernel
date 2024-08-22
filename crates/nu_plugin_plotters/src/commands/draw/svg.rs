@@ -1,10 +1,10 @@
 use nu_engine::command_prelude::*;
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{FromValue, LabeledError};
-use plotters::chart::ChartBuilder;
+use plotters::chart::{ChartBuilder, LabelAreaPosition};
 use plotters::prelude::{IntoDrawingArea, SVGBackend};
 use plotters::series::LineSeries;
-use plotters::style::{RGBAColor, ShapeStyle};
+use plotters::style::{RGBAColor, ShapeStyle, BLACK};
 
 use crate::value::{self, Coord2d, Series2d};
 
@@ -103,9 +103,27 @@ impl DrawSvg {
             }
 
             let mut chart_builder = ChartBuilder::on(&drawing_area);
+
+            let [top, right, bottom, left] = chart.margin;
+            chart_builder.margin_top(top);
+            chart_builder.margin_right(right);
+            chart_builder.margin_bottom(bottom);
+            chart_builder.margin_left(left);
+
+            let [top, right, bottom, left] = chart.label_area;
+            chart_builder.set_label_area_size(LabelAreaPosition::Top, top);
+            chart_builder.set_label_area_size(LabelAreaPosition::Right, right);
+            chart_builder.set_label_area_size(LabelAreaPosition::Bottom, bottom);
+            chart_builder.set_label_area_size(LabelAreaPosition::Left, left);
+
+            if let Some(caption) = chart.caption {
+                chart_builder.caption(caption, &BLACK);
+            }
+
             let mut chart_context = chart_builder
                 .build_cartesian_2d(x_spec, y_spec)
                 .unwrap();
+
             chart_context.configure_mesh().draw().unwrap();
             for Series2d {
                 series,
