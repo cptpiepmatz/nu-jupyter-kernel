@@ -19,11 +19,11 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
 
     let x_spec = chart
         .x_range()
-        .map(|(min, max)| min..max)
+        .map(|value::Range { min, max }| min..max)
         .expect("not empty");
     let y_spec = chart
         .y_range()
-        .map(|(min, max)| min..max)
+        .map(|value::Range { min, max }| min..max)
         .expect("not empty");
 
     if let Some(color) = chart.background {

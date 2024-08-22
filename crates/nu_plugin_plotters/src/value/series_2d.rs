@@ -3,7 +3,7 @@ use std::any::Any;
 use nu_protocol::{CustomValue, FromValue, IntoValue, ShellError, Span, Type, Value};
 use serde::{Deserialize, Serialize};
 
-use super::color::Color;
+use super::{color::Color, Range};
 
 #[derive(Debug, Clone, IntoValue, Serialize, Deserialize)]
 pub struct Series2d {
@@ -73,7 +73,7 @@ impl CustomValue for Series2d {
 
 macro_rules! xy_range {
     ($fn_name:ident: $xy:ident) => {
-        pub fn $fn_name(&self) -> Option<(f64, f64)> {
+        pub fn $fn_name(&self) -> Option<Range> {
             let first = self.series.first()?;
             let (mut min, mut max) = (first.$xy, first.$xy);
             for $xy in self.series.iter().map(|c| c.$xy) {
@@ -85,7 +85,7 @@ macro_rules! xy_range {
                 }
             }
 
-            Some((min, max))
+            Some(Range { min, max })
         }
     };
 }

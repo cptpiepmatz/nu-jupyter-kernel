@@ -65,6 +65,18 @@ impl Command for Chart2d {
                  values.",
                 Some('l'),
             )
+            .named(
+                "x-range",
+                SyntaxShape::Range,
+                "Set the x range.",
+                Some('x'),
+            )
+            .named(
+                "y-range",
+                SyntaxShape::Range,
+                "Set the y range.",
+                Some('y'),
+            )
             .input_output_type(Type::Nothing, value::Chart2d::ty())
             .input_output_type(value::Series2d::ty(), value::Chart2d::ty())
             .input_output_type(Type::list(value::Series2d::ty()), value::Chart2d::ty())
@@ -100,6 +112,8 @@ impl Command for Chart2d {
         let caption = call.get_flag(engine_state, stack, "caption")?;
         let margin = call.get_flag(engine_state, stack, "margin")?;
         let label_area = call.get_flag(engine_state, stack, "label-area")?;
+        let x_range = call.get_flag(engine_state, stack, "x-range")?;
+        let y_range = call.get_flag(engine_state, stack, "y-range")?;
         Chart2d::run(self, input, extend, Chart2dOptions {
             width,
             height,
@@ -107,6 +121,8 @@ impl Command for Chart2d {
             caption,
             margin,
             label_area,
+            x_range,
+            y_range,
         })
         .map(|v| PipelineData::Value(v, None))
     }
@@ -167,6 +183,8 @@ impl SimplePluginCommand for Chart2d {
                 "caption" => options.caption = extract_named("caption", value, name.span)?,
                 "margin" => options.margin = extract_named("margin", value, name.span)?,
                 "label-area" => options.label_area = extract_named("label-area", value, name.span)?,
+                "x-range" => options.x_range = extract_named("x-range", value, name.span)?,
+                "y-range" => options.y_range = extract_named("y-range", value, name.span)?,
                 _ => continue,
             }
         }
@@ -183,6 +201,8 @@ struct Chart2dOptions {
     pub caption: Option<String>,
     pub margin: Option<Vec<u32>>,
     pub label_area: Option<Vec<u32>>,
+    pub x_range: Option<value::Range>,
+    pub y_range: Option<value::Range>,
 }
 
 impl Chart2d {
@@ -190,7 +210,17 @@ impl Chart2d {
         &self,
         input: Value,
         extend: Option<value::Chart2d>,
-        options: Chart2dOptions,
+        Chart2dOptions {
+            // unroll here to ensure we use all of them
+            width,
+            height,
+            background,
+            caption,
+            margin,
+            label_area,
+            x_range,
+            y_range,
+        }: Chart2dOptions,
     ) -> Result<Value, ShellError> {
         let span = input.span();
         let mut input = match input {
@@ -201,20 +231,20 @@ impl Chart2d {
 
         let mut chart = extend.unwrap_or_default();
         chart.series.append(&mut input);
-        chart.width = options.width.unwrap_or(chart.width);
-        chart.height = options.height.unwrap_or(chart.height);
-        chart.background = options.background.or(chart.background);
-        chart.caption = options.caption.or(chart.caption);
-        chart.margin = options
-            .margin
+        chart.width = width.unwrap_or(chart.width);
+        chart.height = height.unwrap_or(chart.height);
+        chart.background = background.or(chart.background);
+        chart.caption = caption.or(chart.caption);
+        chart.margin = margin
             .map(side_shorthand)
             .transpose()?
             .unwrap_or(chart.margin);
-        chart.label_area = options
-            .label_area
+        chart.label_area = label_area
             .map(side_shorthand)
             .transpose()?
             .unwrap_or(chart.label_area);
+        chart.x_range = x_range.or(chart.x_range);
+        chart.y_range = y_range.or(chart.y_range);
 
         Ok(Value::custom(Box::new(chart), span))
     }
