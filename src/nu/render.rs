@@ -2,13 +2,12 @@ use std::collections::HashMap;
 
 use mime::Mime;
 use nu_command::{ToCsv, ToJson, ToMd};
+use nu_plotters::commands::draw::DrawSvg;
 use nu_protocol::ast::{Argument, Call};
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{Command, EngineState, Stack};
 use nu_protocol::{PipelineData, ShellError, Span, Spanned, Value};
 use thiserror::Error;
-
-use nu_plotters::commands::draw::DrawSvg;
 
 macro_rules! create_format_decl_ids {
     ($($field:ident : $search_str:expr),+ $(,)?) => {
@@ -211,8 +210,13 @@ impl PipelineRender {
 
         // TODO: feature flag this
         if match_filter(mime::IMAGE_SVG) {
-            match Self::render_via_cmd(&value, DrawSvg, format_decl_ids.draw_svg, engine_state, stack)
-            {
+            match Self::render_via_cmd(
+                &value,
+                DrawSvg,
+                format_decl_ids.draw_svg,
+                engine_state,
+                stack,
+            ) {
                 Ok(Some(s)) => data.insert(mime::IMAGE_SVG, s),
                 Ok(None) | Err(InternalRenderError::Eval(_)) => None,
                 Err(_) => None, // TODO: print the error
