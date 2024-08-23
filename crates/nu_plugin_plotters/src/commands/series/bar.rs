@@ -6,11 +6,11 @@ use plotters::style::BLUE;
 use crate::value::{Color, Series2d, Series2dStyle};
 
 #[derive(Debug, Clone)]
-pub struct LineSeries;
+pub struct BarSeries;
 
-impl Command for LineSeries {
+impl Command for BarSeries {
     fn name(&self) -> &str {
-        "series line"
+        "series bar"
     }
 
     fn signature(&self) -> Signature {
@@ -44,10 +44,10 @@ impl Command for LineSeries {
                 Some('s'),
             )
             .named(
-                "point-size",
-                SyntaxShape::Int,
-                "Define the size of the points in pixels.",
-                Some('p'),
+                "horizontal",
+                SyntaxShape::Boolean,
+                "Define whether the bars should be horizontal.",
+                Some('H'),
             )
             .input_output_type(Type::list(Type::Number), Series2d::ty())
             .input_output_type(Type::list(Type::list(Type::Number)), Series2d::ty())
@@ -64,7 +64,7 @@ impl Command for LineSeries {
     }
 
     fn usage(&self) -> &str {
-        "Create a line series."
+        "Create a bar series."
     }
 
     fn extra_usage(&self) -> &str {
@@ -72,7 +72,7 @@ impl Command for LineSeries {
     }
 
     fn search_terms(&self) -> Vec<&str> {
-        vec!["plotters", "series", "line", "chart"]
+        vec!["plotters", "series", "bar", "chart"]
     }
 
     fn run(
@@ -87,13 +87,13 @@ impl Command for LineSeries {
         let color = call.get_flag(engine_state, stack, "color")?;
         let filled = call.get_flag(engine_state, stack, "filled")?;
         let stroke_width = call.get_flag(engine_state, stack, "stroke-width")?;
-        let point_size = call.get_flag(engine_state, stack, "point-size")?;
-        LineSeries::run(self, input, color, filled, stroke_width, point_size)
+        let horizontal = call.get_flag(engine_state, stack, "horizontal")?;
+        BarSeries::run(self, input, color, filled, stroke_width, horizontal)
             .map(|v| PipelineData::Value(v, None))
     }
 }
 
-impl nu_plugin::SimplePluginCommand for LineSeries {
+impl nu_plugin::SimplePluginCommand for BarSeries {
     type Plugin = crate::plugin::PlottersPlugin;
 
     fn name(&self) -> &str {
@@ -124,7 +124,7 @@ impl nu_plugin::SimplePluginCommand for LineSeries {
         input: &Value,
     ) -> Result<Value, LabeledError> {
         let input = input.clone();
-        let (mut color, mut filled, mut stroke_width, mut point_size) = Default::default();
+        let (mut color, mut filled, mut stroke_width, mut horizontal) = Default::default();
         for (name, value) in call.named.clone() {
             fn extract_named<T: FromValue>(
                 name: impl ToString,
@@ -142,30 +142,30 @@ impl nu_plugin::SimplePluginCommand for LineSeries {
                 "color" => color = extract_named("color", value, name.span)?,
                 "filled" => filled = extract_named("filled", value, name.span)?,
                 "stroke-width" => stroke_width = extract_named("stroke-width", value, name.span)?,
-                "point-size" => point_size = extract_named("point-size", value, name.span)?,
+                "horizontal" => horizontal = extract_named("horizontal", value, name.span)?,
                 _ => continue,
             }
         }
 
-        LineSeries::run(self, input, color, filled, stroke_width, point_size).map_err(Into::into)
+        BarSeries::run(self, input, color, filled, stroke_width, horizontal).map_err(Into::into)
     }
 }
 
-impl LineSeries {
+impl BarSeries {
     fn run(
         &self,
         input: Value,
         color: Option<Color>,
         filled: Option<bool>,
         stroke_width: Option<u32>,
-        point_size: Option<u32>,
+        horizontal: Option<bool>,
     ) -> Result<Value, ShellError> {
         let input_span = input.span();
         let series = super::series_from_value(input)?;
         let series = Series2d {
             series,
-            style: Series2dStyle::Line {
-                point_size: point_size.unwrap_or(0),
+            style: Series2dStyle::Bar {
+                horizontal: horizontal.unwrap_or(false),
             },
             color: color.unwrap_or(BLUE.into()),
             filled: filled.unwrap_or(false),

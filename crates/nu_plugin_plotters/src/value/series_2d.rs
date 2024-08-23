@@ -1,29 +1,56 @@
 use std::any::Any;
 
-use nu_protocol::{CustomValue, FromValue, IntoValue, ShellError, Span, Type, Value};
+use nu_protocol::{record, CustomValue, FromValue, IntoValue, ShellError, Span, Type, Value};
 use serde::{Deserialize, Serialize};
 
-use super::{color::Color, Range};
+use super::color::Color;
+use super::{Coord2d, Range};
 
-#[derive(Debug, Clone, IntoValue, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Series2d {
     pub series: Vec<Coord2d>,
     pub style: Series2dStyle,
     pub color: Color,
     pub filled: bool,
     pub stroke_width: u32,
-    pub point_size: u32,
 }
 
-#[derive(Debug, Clone, IntoValue, FromValue, Serialize, Deserialize)]
-pub struct Coord2d {
-    pub x: f64,
-    pub y: f64,
-}
-
-#[derive(Debug, Clone, IntoValue, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Series2dStyle {
-    Line,
+    Line { point_size: u32 },
+    Bar { horizontal: bool },
+}
+
+impl IntoValue for Series2d {
+    fn into_value(self, span: Span) -> Value {
+        let Series2d {
+            series,
+            style,
+            color,
+            filled,
+            stroke_width,
+        } = self;
+
+        let mut record = record! {
+            "series" => series.into_value(span),
+            "color" => color.into_value(span),
+            "filled" => filled.into_value(span),
+            "stroke_width" => stroke_width.into_value(span),
+        };
+
+        match style {
+            Series2dStyle::Line { point_size } => {
+                record.push("style", "line".to_string().into_value(span));
+                record.push("point_size", point_size.into_value(span));
+            }
+            Series2dStyle::Bar { horizontal } => {
+                record.push("style", "bar".to_string().into_value(span));
+                record.push("horizontal", horizontal.into_value(span));
+            }
+        }
+
+        Value::record(record, span)
+    }
 }
 
 impl FromValue for Series2d {
@@ -59,7 +86,7 @@ impl CustomValue for Series2d {
     }
 
     fn to_base_value(&self, span: Span) -> Result<Value, ShellError> {
-        Ok(self.clone().into_value(span))
+        Ok(Series2d::into_value(self.clone(), span))
     }
 
     fn as_any(&self) -> &dyn Any {

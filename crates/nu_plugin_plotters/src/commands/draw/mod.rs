@@ -1,10 +1,10 @@
 use plotters::chart::{ChartBuilder, LabelAreaPosition};
 use plotters::coord::Shift;
 use plotters::prelude::{DrawingArea, DrawingBackend};
-use plotters::series::LineSeries;
+use plotters::series::{Histogram, LineSeries};
 use plotters::style::{RGBAColor, ShapeStyle, BLACK};
 
-use crate::value;
+use crate::value::{self, Coord2d};
 
 mod svg;
 pub use svg::*;
@@ -17,14 +17,9 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
         todo!("return some error that empty series do not work")
     }
 
-    let x_spec = chart
-        .x_range()
-        .map(|value::Range { min, max }| min..max)
-        .expect("not empty");
-    let y_spec = chart
-        .y_range()
-        .map(|value::Range { min, max }| min..max)
-        .expect("not empty");
+    // TODO: make better error
+    let x_range = chart.x_range().unwrap();
+    let y_range = chart.y_range().unwrap();
 
     if let Some(color) = chart.background {
         let color: RGBAColor = color.into();
@@ -49,7 +44,7 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
         chart_builder.caption(caption, &BLACK);
     }
 
-    let mut chart_context = chart_builder.build_cartesian_2d(x_spec, y_spec).unwrap();
+    let mut chart_context = chart_builder.build_cartesian_2d(x_range, y_range).unwrap();
 
     chart_context.configure_mesh().draw().unwrap();
     for value::Series2d {
@@ -58,11 +53,11 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
         color,
         filled,
         stroke_width,
-        point_size,
     } in chart.series
     {
+        type S2S = value::Series2dStyle;
         match style {
-            value::Series2dStyle::Line => {
+            S2S::Line { point_size } => {
                 let series = LineSeries::new(
                     series.into_iter().map(|value::Coord2d { x, y }| (x, y)),
                     ShapeStyle {
@@ -74,6 +69,17 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
                 .point_size(point_size);
                 chart_context.draw_series(series).unwrap();
             }
+            S2S::Bar { horizontal: false } => {
+                let histogram = Histogram::vertical(&chart_context)
+                    .style(ShapeStyle {
+                        color: color.into(),
+                        filled,
+                        stroke_width,
+                    })
+                    .data(series.into_iter().map(|Coord2d { x, y }| (x, y)));
+                chart_context.draw_series(histogram).unwrap();
+            }
+            S2S::Bar { horizontal: true } => todo!(),
         }
     }
 }

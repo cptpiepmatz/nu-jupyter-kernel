@@ -65,18 +65,8 @@ impl Command for Chart2d {
                  values.",
                 Some('l'),
             )
-            .named(
-                "x-range",
-                SyntaxShape::Range,
-                "Set the x range.",
-                Some('x'),
-            )
-            .named(
-                "y-range",
-                SyntaxShape::Range,
-                "Set the y range.",
-                Some('y'),
-            )
+            .named("x-range", SyntaxShape::Range, "Set the x range.", Some('x'))
+            .named("y-range", SyntaxShape::Range, "Set the y range.", Some('y'))
             .input_output_type(Type::Nothing, value::Chart2d::ty())
             .input_output_type(value::Series2d::ty(), value::Chart2d::ty())
             .input_output_type(Type::list(value::Series2d::ty()), value::Chart2d::ty())

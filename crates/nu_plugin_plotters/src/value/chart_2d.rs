@@ -1,11 +1,11 @@
 use std::any::Any;
-use std::ops::Bound;
 
-use nu_protocol::{CustomValue, FloatRange, FromValue, IntoValue, ShellError, Span, Type, Value};
+use nu_protocol::{CustomValue, FromValue, IntoValue, ShellError, Span, Type, Value};
 use serde::{Deserialize, Serialize};
 
 use super::color::Color;
 use super::series_2d::Series2d;
+use super::Range;
 
 #[derive(Debug, Clone, IntoValue, Serialize, Deserialize)]
 pub struct Chart2d {
@@ -90,7 +90,11 @@ macro_rules! xy_range {
 
             let first = self.series.first()?;
             let Range { mut min, mut max } = first.$fn_name()?;
-            for Range { min: s_min, max: s_max } in self.series.iter().filter_map(|s| s.$fn_name()) {
+            for Range {
+                min: s_min,
+                max: s_max,
+            } in self.series.iter().filter_map(|s| s.$fn_name())
+            {
                 if s_min < min {
                     min = s_min
                 }
@@ -111,61 +115,5 @@ impl Chart2d {
 
     pub fn ty() -> Type {
         Type::Custom("plotters::chart-2d".to_string().into_boxed_str())
-    }
-}
-
-#[derive(Debug, Clone, Copy, IntoValue, Serialize, Deserialize)]
-pub struct Range {
-    pub min: f64,
-    pub max: f64,
-}
-
-impl FromValue for Range {
-    fn from_value(v: Value) -> Result<Self, ShellError> {
-        match v {
-            Value::Range { val, internal_span } => {
-                let range = FloatRange::from(*val);
-                let min = range.start();
-                let max = match range.end() {
-                    Bound::Included(max) => max,
-                    Bound::Excluded(max) => max,
-                    Bound::Unbounded => return Err(ShellError::CantConvert { 
-                        to_type: Self::expected_type().to_string(), 
-                        from_type: Type::Range.to_string(), 
-                        span: internal_span, 
-                        help: Some("Try a bounded range instead.".to_string())
-                    }),
-                };
-
-                Ok(Self { min, max })
-            },
-
-            v @ Value::List { .. } => {
-                let [min, max] = <[f64; 2]>::from_value(v)?;
-                Ok(Self { min, max })
-            },
-
-            v @ Value::Record { .. } => {
-                #[derive(Debug, FromValue)]
-                struct RangeDTO {
-                    min: f64,
-                    max: f64,
-                }
-
-                let RangeDTO { min, max } = RangeDTO::from_value(v)?;
-                Ok(Self { min, max }) 
-            },
-            
-            v => Err(ShellError::CantConvert {
-                to_type: Self::expected_type().to_string(),
-                from_type: v.get_type().to_string(),
-                span: v.span(),
-                help: None,
-            }),
-        }
-    }
-
-    fn expected_type() -> Type {
-        Type::List(Box::new(Type::Number))
     }
 }

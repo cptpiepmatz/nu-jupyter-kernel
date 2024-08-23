@@ -2,7 +2,8 @@ use icy_sixel::{DiffusionMethod, MethodForLargest, MethodForRep, PixelFormat, Qu
 use nu_engine::command_prelude::*;
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{FromValue, LabeledError};
-use plotters::{prelude::{BitMapBackend, IntoDrawingArea}, style::WHITE};
+use plotters::prelude::{BitMapBackend, IntoDrawingArea};
+use plotters::style::WHITE;
 
 use crate::value;
 

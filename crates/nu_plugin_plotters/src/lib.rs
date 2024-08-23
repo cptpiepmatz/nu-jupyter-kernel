@@ -15,6 +15,7 @@ pub fn add_plotters_command_context(mut engine_state: EngineState) -> EngineStat
         }
 
         bind_command!(
+            commands::series::BarSeries,
             commands::series::LineSeries,
             commands::Chart2d,
             commands::draw::DrawSvg,
