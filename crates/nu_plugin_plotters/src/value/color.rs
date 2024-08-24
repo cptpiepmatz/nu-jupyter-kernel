@@ -10,6 +10,17 @@ pub struct Color {
     pub a: AlphaChannel,
 }
 
+impl Default for Color {
+    fn default() -> Self {
+        Self {
+            r: ColorChannel(0),
+            g: ColorChannel(0),
+            b: ColorChannel(0),
+            a: AlphaChannel(1.0),
+        }
+    }
+}
+
 impl FromValue for Color {
     fn from_value(v: Value) -> Result<Self, ShellError> {
         match v {
@@ -49,7 +60,10 @@ impl FromValue for Color {
                 }
             }
 
-            ref v @ Value::String { ref val, .. } => match val.as_str() {
+            ref v @ Value::String {
+                ref val,
+                internal_span: span,
+            } => match val.to_lowercase().as_str() {
                 "black" => Ok(BLACK.into()),
                 "blue" => Ok(BLUE.into()),
                 "cyan" => Ok(CYAN.into()),
@@ -58,12 +72,41 @@ impl FromValue for Color {
                 "red" => Ok(RED.into()),
                 "white" => Ok(WHITE.into()),
                 "yellow" => Ok(YELLOW.into()),
-                _ => Err(ShellError::CantConvert {
-                    to_type: Self::expected_type().to_string(),
-                    from_type: v.get_type().to_string(),
-                    span: v.span(),
-                    help: None,
-                }),
+                val => {
+                    if val.starts_with("#") {
+                        let val = &val[1..];
+                        match val.len() {
+                            6 => {
+                                let span = |offset| {
+                                    Span::new(span.start + 2 + offset, span.start + 4 + offset)
+                                };
+                                let mut color = Color::default();
+                                color.r.0 = u8_from_hex(&val[0..2], span(0))?;
+                                color.g.0 = u8_from_hex(&val[2..4], span(2))?;
+                                color.b.0 = u8_from_hex(&val[4..6], span(4))?;
+                                return Ok(color);
+                            }
+                            3 => {
+                                let span = |offset| {
+                                    Span::new(span.start + 2 + offset, span.start + 3 + offset)
+                                };
+                                let mut color = Color::default();
+                                color.r.0 = u8_from_hex(&val[0..1].repeat(2), span(0))?;
+                                color.g.0 = u8_from_hex(&val[1..2].repeat(2), span(1))?;
+                                color.b.0 = u8_from_hex(&val[2..3].repeat(2), span(2))?;
+                                return Ok(color);
+                            }
+                            _ => (),
+                        }
+                    }
+
+                    Err(ShellError::CantConvert {
+                        to_type: Self::expected_type().to_string(),
+                        from_type: v.get_type().to_string(),
+                        span: v.span(),
+                        help: None,
+                    })
+                }
             },
 
             v => Err(ShellError::CantConvert {
@@ -78,6 +121,15 @@ impl FromValue for Color {
     fn expected_type() -> Type {
         Type::Custom("plotters::color".to_string().into_boxed_str())
     }
+}
+
+fn u8_from_hex(hex: &str, span: Span) -> Result<u8, ShellError> {
+    u8::from_str_radix(hex, 16).map_err(|_| ShellError::CantConvert {
+        to_type: Type::Int.to_string(),
+        from_type: Type::String.to_string(),
+        span,
+        help: None,
+    })
 }
 
 impl From<RGBColor> for Color {
