@@ -118,7 +118,11 @@ impl Series2d {
             }
         }
 
-        Some(Range { min, max })
+        Some(Range {
+            min,
+            max,
+            metadata: None,
+        })
     }
 
     pub fn x_range(&self) -> Option<Range> {

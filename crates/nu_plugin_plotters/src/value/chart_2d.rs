@@ -89,10 +89,13 @@ macro_rules! xy_range {
             }
 
             let first = self.series.first()?;
-            let Range { mut min, mut max } = first.$fn_name()?;
+            let Range {
+                mut min, mut max, ..
+            } = first.$fn_name()?;
             for Range {
                 min: s_min,
                 max: s_max,
+                ..
             } in self.series.iter().filter_map(|s| s.$fn_name())
             {
                 if s_min < min {
@@ -103,7 +106,11 @@ macro_rules! xy_range {
                 }
             }
 
-            Some(Range { min, max })
+            Some(Range {
+                min,
+                max,
+                metadata: None,
+            })
         }
     };
 }

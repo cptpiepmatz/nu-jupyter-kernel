@@ -4,7 +4,7 @@ use plotters::prelude::{Cartesian2d, DrawingArea, DrawingBackend, Rectangle};
 use plotters::series::LineSeries;
 use plotters::style::{RGBAColor, ShapeStyle, BLACK};
 
-use crate::value::{self, Coord1d, Coord2d, Range};
+use crate::value::{self, Coord1d, Coord2d, Range, RangeMetadata, Series2dStyle};
 
 mod svg;
 pub use svg::*;
@@ -18,8 +18,19 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
     }
 
     // TODO: make better error
-    let x_range = chart.x_range().unwrap();
+    let mut x_range = chart.x_range().unwrap();
     let y_range = chart.y_range().unwrap();
+
+    // bar charts typically want to display all the discrete points
+    if chart
+        .series
+        .iter()
+        .any(|series| matches!(series.style, Series2dStyle::Bar { .. }))
+    {
+        x_range.metadata = Some(RangeMetadata {
+            discrete_key_points: true,
+        });
+    }
 
     if let Some(color) = chart.background {
         let color: RGBAColor = color.into();

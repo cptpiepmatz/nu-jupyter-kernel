@@ -13,6 +13,12 @@ use super::Coord1d;
 pub struct Range {
     pub min: Coord1d,
     pub max: Coord1d,
+    pub metadata: Option<RangeMetadata>,
+}
+
+#[derive(Debug, Clone, Copy, IntoValue, Serialize, Deserialize)]
+pub struct RangeMetadata {
+    pub discrete_key_points: bool,
 }
 
 impl FromValue for Range {
@@ -38,12 +44,20 @@ impl FromValue for Range {
                 let min = Coord1d::from_value(min.into_value(internal_span))?;
                 let max = Coord1d::from_value(max.into_value(internal_span))?;
 
-                Ok(Self { min, max })
+                Ok(Self {
+                    min,
+                    max,
+                    metadata: None,
+                })
             }
 
             v @ Value::List { .. } => {
                 let [min, max] = <[Coord1d; 2]>::from_value(v)?;
-                Ok(Self { min, max })
+                Ok(Self {
+                    min,
+                    max,
+                    metadata: None,
+                })
             }
 
             v @ Value::Record { .. } => {
@@ -54,7 +68,11 @@ impl FromValue for Range {
                 }
 
                 let RangeDTO { min, max } = RangeDTO::from_value(v)?;
-                Ok(Self { min, max })
+                Ok(Self {
+                    min,
+                    max,
+                    metadata: None,
+                })
             }
 
             v => Err(ShellError::CantConvert {
@@ -86,6 +104,15 @@ impl Ranged for Range {
     }
 
     fn key_points<Hint: KeyPointHint>(&self, hint: Hint) -> Vec<Self::ValueType> {
+        if let Some(RangeMetadata {
+            discrete_key_points: true,
+        }) = self.metadata
+        {
+            let lower = self.min.ceil();
+            let upper = self.max.floor();
+            return (lower..=upper).into_iter().map(Coord1d::Int).collect();
+        }
+
         match (self.min, self.max) {
             (Coord1d::Int(_), Coord1d::Int(_)) => RangedCoordi64::from(*self)
                 .key_points(hint)

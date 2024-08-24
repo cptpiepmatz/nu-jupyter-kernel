@@ -43,6 +43,7 @@ impl FromValue for Color {
             }
 
             list @ Value::List { .. } => {
+                // TODO: check list length to avoid cloning
                 let rgba = <(ColorChannel, ColorChannel, ColorChannel, AlphaChannel)>::from_value(
                     list.clone(),
                 );
