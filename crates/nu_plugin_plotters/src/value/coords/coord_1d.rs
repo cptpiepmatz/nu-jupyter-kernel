@@ -1,5 +1,5 @@
-use std::cmp;
-use std::ops::AddAssign;
+use std::{cmp, ops::Sub};
+use std::ops::{Add, AddAssign, Div};
 
 use nu_protocol::{FromValue, IntoValue, ShellError, Span, Value};
 use serde::{Deserialize, Serialize};
@@ -159,14 +159,45 @@ impl FromValue for Coord1d {
     }
 }
 
+impl Add for Coord1d {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Coord1d::Int(lhs), Coord1d::Int(rhs)) => Coord1d::Int(lhs + rhs),
+            (Coord1d::Int(lhs), Coord1d::Float(rhs)) => Coord1d::Float(lhs as f64 + rhs),
+            (Coord1d::Float(lhs), Coord1d::Int(rhs)) => Coord1d::Float(lhs + rhs as f64),
+            (Coord1d::Float(lhs), Coord1d::Float(rhs)) => Coord1d::Float(lhs + rhs),
+        }
+    }
+}
+
 impl AddAssign for Coord1d {
     fn add_assign(&mut self, rhs: Self) {
-        match (*self, rhs) {
-            (Coord1d::Int(lhs), Coord1d::Int(rhs)) => *self = Coord1d::Int(lhs + rhs),
-            (Coord1d::Int(lhs), Coord1d::Float(rhs)) => *self = Coord1d::Float(lhs as f64 + rhs),
-            (Coord1d::Float(lhs), Coord1d::Int(rhs)) => *self = Coord1d::Float(lhs + rhs as f64),
-            (Coord1d::Float(lhs), Coord1d::Float(rhs)) => *self = Coord1d::Float(lhs + rhs),
+        *self = self.add(rhs);
+    }
+}
+
+impl Sub for Coord1d {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Coord1d::Int(lhs), Coord1d::Int(rhs)) => Coord1d::Int(lhs - rhs),
+            (Coord1d::Int(lhs), Coord1d::Float(rhs)) => Coord1d::Float(lhs as f64 - rhs),
+            (Coord1d::Float(lhs), Coord1d::Int(rhs)) => Coord1d::Float(lhs - rhs as f64),
+            (Coord1d::Float(lhs), Coord1d::Float(rhs)) => Coord1d::Float(lhs - rhs),
         }
+    }
+}
+
+impl Div for Coord1d {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        let lhs = self.as_float();
+        let rhs = rhs.as_float();
+        Coord1d::Float(lhs / rhs)
     }
 }
 

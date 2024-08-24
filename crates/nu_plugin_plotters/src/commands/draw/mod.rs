@@ -1,6 +1,7 @@
 use plotters::chart::{ChartBuilder, LabelAreaPosition};
 use plotters::coord::Shift;
-use plotters::prelude::{DrawingArea, DrawingBackend};
+use plotters::element::PointCollection;
+use plotters::prelude::{DrawingArea, DrawingBackend, Rectangle};
 use plotters::series::{Histogram, LineSeries};
 use plotters::style::{RGBAColor, ShapeStyle, BLACK};
 
@@ -70,14 +71,27 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
                 chart_context.draw_series(series).unwrap();
             }
             S2S::Bar { horizontal: false } => {
+                let shape_style = ShapeStyle {
+                    color: color.into(),
+                    filled,
+                    stroke_width,
+                };
                 let histogram = Histogram::vertical(&chart_context)
-                    .style(ShapeStyle {
-                        color: color.into(),
-                        filled,
-                        stroke_width,
-                    })
                     .data(series.into_iter().map(|Coord2d { x, y }| (x, y)));
-                chart_context.draw_series(histogram).unwrap();
+                // TODO: pull this shifting in a separate fn
+                chart_context.draw_series(histogram.into_iter().map(|rect| {
+                    let mut points = rect.point_iter().iter().cloned();
+                    let first = points.next().expect("first corner");
+                    let second = points.next().expect("second corner");
+                    let offset = (second.0 - first.0) / value::Coord1d::Int(2);
+
+                    let first = (first.0 - offset, first.1);
+                    let second = (second.0 - offset, second.1);
+
+                    let rect = Rectangle::new([first, second], shape_style);
+                    // TODO: set margin
+                    rect
+                })).unwrap();
             }
             S2S::Bar { horizontal: true } => todo!(),
         }

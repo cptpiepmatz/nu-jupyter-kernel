@@ -168,7 +168,7 @@ impl BarSeries {
                 horizontal: horizontal.unwrap_or(false),
             },
             color: color.unwrap_or(BLUE.into()),
-            filled: filled.unwrap_or(false),
+            filled: filled.unwrap_or(true),
             stroke_width: stroke_width.unwrap_or(1),
         };
 

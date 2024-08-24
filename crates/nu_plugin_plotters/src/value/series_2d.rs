@@ -1,10 +1,11 @@
 use std::any::Any;
+use std::cmp;
 
 use nu_protocol::{record, CustomValue, FromValue, IntoValue, ShellError, Span, Type, Value};
 use serde::{Deserialize, Serialize};
 
 use super::color::Color;
-use super::{Coord2d, Range};
+use super::{Coord1d, Coord2d, Range};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Series2d {
@@ -98,29 +99,37 @@ impl CustomValue for Series2d {
     }
 }
 
-macro_rules! xy_range {
-    ($fn_name:ident: $xy:ident) => {
-        pub fn $fn_name(&self) -> Option<Range> {
-            let first = self.series.first()?;
-            let (mut min, mut max) = (first.$xy, first.$xy);
-            for $xy in self.series.iter().map(|c| c.$xy) {
-                if $xy < min {
-                    min = $xy
-                }
-                if $xy > max {
-                    max = $xy
-                }
+impl Series2d {
+    // FIXME: maybe we need to rethink this range function
+    fn range<A, M>(&self, axis: A, map: M) -> Option<Range> where A: Fn(&Coord2d) -> Coord1d, M: Fn(Coord1d) -> (Coord1d, Coord1d) {
+        let first = self.series.first()?;
+        let (mut min, mut max) = (axis(first), axis(first));
+        for (lower, upper) in self.series.iter().map(axis).map(map) {
+            if lower < min {
+                min = lower;
             }
 
-            Some(Range { min, max })
+            if upper > max {
+                max = upper;
+            }
         }
-    };
-}
 
-impl Series2d {
-    xy_range!(x_range: x);
+        Some(Range { min, max })
+    }
 
-    xy_range!(y_range: y);
+    pub fn x_range(&self) -> Option<Range> {
+        self.range(|c| c.x, |c| match self.style {
+            Series2dStyle::Line { .. } => (c, c),
+            Series2dStyle::Bar { .. } => (c - Coord1d::Float(0.6), c + Coord1d::Float(0.6)),
+        })
+    }
+
+    pub fn y_range(&self) -> Option<Range> {
+        self.range(|c| c.y, |c| match self.style {
+            Series2dStyle::Line { .. } => (c, c),
+            Series2dStyle::Bar { .. } => (cmp::min(Coord1d::Int(0), c), cmp::max(Coord1d::Int(0), c + Coord1d::Float(0.1))),
+        })
+    }
 
     pub fn ty() -> Type {
         Type::Custom("plotters::series-2d".to_string().into_boxed_str())
