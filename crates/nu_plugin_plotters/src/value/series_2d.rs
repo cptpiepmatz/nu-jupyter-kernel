@@ -101,7 +101,11 @@ impl CustomValue for Series2d {
 
 impl Series2d {
     // FIXME: maybe we need to rethink this range function
-    fn range<A, M>(&self, axis: A, map: M) -> Option<Range> where A: Fn(&Coord2d) -> Coord1d, M: Fn(Coord1d) -> (Coord1d, Coord1d) {
+    fn range<A, M>(&self, axis: A, map: M) -> Option<Range>
+    where
+        A: Fn(&Coord2d) -> Coord1d,
+        M: Fn(Coord1d) -> (Coord1d, Coord1d),
+    {
         let first = self.series.first()?;
         let (mut min, mut max) = (axis(first), axis(first));
         for (lower, upper) in self.series.iter().map(axis).map(map) {
@@ -118,17 +122,25 @@ impl Series2d {
     }
 
     pub fn x_range(&self) -> Option<Range> {
-        self.range(|c| c.x, |c| match self.style {
-            Series2dStyle::Line { .. } => (c, c),
-            Series2dStyle::Bar { .. } => (c - Coord1d::Float(0.6), c + Coord1d::Float(0.6)),
-        })
+        self.range(
+            |c| c.x,
+            |c| match self.style {
+                Series2dStyle::Line { .. } => (c, c),
+                Series2dStyle::Bar { .. } => (c - Coord1d::Float(0.5), c + Coord1d::Float(0.5)),
+            },
+        )
     }
 
     pub fn y_range(&self) -> Option<Range> {
-        self.range(|c| c.y, |c| match self.style {
-            Series2dStyle::Line { .. } => (c, c),
-            Series2dStyle::Bar { .. } => (cmp::min(Coord1d::Int(0), c), cmp::max(Coord1d::Int(0), c + Coord1d::Float(0.1))),
-        })
+        self.range(
+            |c| c.y,
+            |c| match self.style {
+                Series2dStyle::Line { .. } => (c, c),
+                Series2dStyle::Bar { .. } => {
+                    (cmp::min(Coord1d::Int(0), c), cmp::max(Coord1d::Int(0), c))
+                }
+            },
+        )
     }
 
     pub fn ty() -> Type {

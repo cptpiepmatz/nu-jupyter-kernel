@@ -1,11 +1,10 @@
-use plotters::chart::{ChartBuilder, LabelAreaPosition};
+use plotters::chart::{ChartBuilder, ChartContext, LabelAreaPosition};
 use plotters::coord::Shift;
-use plotters::element::PointCollection;
-use plotters::prelude::{DrawingArea, DrawingBackend, Rectangle};
-use plotters::series::{Histogram, LineSeries};
+use plotters::prelude::{Cartesian2d, DrawingArea, DrawingBackend, Rectangle};
+use plotters::series::LineSeries;
 use plotters::style::{RGBAColor, ShapeStyle, BLACK};
 
-use crate::value::{self, Coord2d};
+use crate::value::{self, Coord1d, Coord2d, Range};
 
 mod svg;
 pub use svg::*;
@@ -56,44 +55,49 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
         stroke_width,
     } in chart.series
     {
+        let shape_style = ShapeStyle {
+            color: color.into(),
+            filled,
+            stroke_width,
+        };
+
         type S2S = value::Series2dStyle;
         match style {
             S2S::Line { point_size } => {
-                let series = LineSeries::new(
-                    series.into_iter().map(|value::Coord2d { x, y }| (x, y)),
-                    ShapeStyle {
-                        color: color.into(),
-                        filled,
-                        stroke_width,
-                    },
-                )
-                .point_size(point_size);
-                chart_context.draw_series(series).unwrap();
+                draw_line(&mut chart_context, series, shape_style, point_size)
             }
             S2S::Bar { horizontal: false } => {
-                let shape_style = ShapeStyle {
-                    color: color.into(),
-                    filled,
-                    stroke_width,
-                };
-                let histogram = Histogram::vertical(&chart_context)
-                    .data(series.into_iter().map(|Coord2d { x, y }| (x, y)));
-                // TODO: pull this shifting in a separate fn
-                chart_context.draw_series(histogram.into_iter().map(|rect| {
-                    let mut points = rect.point_iter().iter().cloned();
-                    let first = points.next().expect("first corner");
-                    let second = points.next().expect("second corner");
-                    let offset = (second.0 - first.0) / value::Coord1d::Int(2);
-
-                    let first = (first.0 - offset, first.1);
-                    let second = (second.0 - offset, second.1);
-
-                    let rect = Rectangle::new([first, second], shape_style);
-                    // TODO: set margin
-                    rect
-                })).unwrap();
+                draw_vertical_bar(&mut chart_context, series, shape_style)
             }
             S2S::Bar { horizontal: true } => todo!(),
         }
     }
+}
+
+fn draw_line<DB: DrawingBackend>(
+    chart_context: &mut ChartContext<DB, Cartesian2d<Range, Range>>,
+    series: Vec<Coord2d>,
+    shape_style: ShapeStyle,
+    point_size: u32,
+) {
+    let series = LineSeries::new(
+        series.into_iter().map(|value::Coord2d { x, y }| (x, y)),
+        shape_style,
+    )
+    .point_size(point_size);
+    chart_context.draw_series(series).unwrap();
+}
+
+fn draw_vertical_bar<DB: DrawingBackend>(
+    chart_context: &mut ChartContext<DB, Cartesian2d<Range, Range>>,
+    series: Vec<Coord2d>,
+    shape_style: ShapeStyle,
+) {
+    let rect_iter = series.into_iter().map(|Coord2d { x, y }| {
+        let half_width = Coord1d::Float(0.8) / Coord1d::Int(2);
+        let value_point = (x - half_width, y);
+        let base_point = (x + half_width, Coord1d::Int(0));
+        Rectangle::new([value_point, base_point], shape_style)
+    });
+    chart_context.draw_series(rect_iter).unwrap();
 }

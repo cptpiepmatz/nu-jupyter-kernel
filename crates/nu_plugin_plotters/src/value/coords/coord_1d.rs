@@ -1,5 +1,5 @@
-use std::{cmp, ops::Sub};
-use std::ops::{Add, AddAssign, Div};
+use std::cmp;
+use std::ops::{Add, AddAssign, Div, Sub};
 
 use nu_protocol::{FromValue, IntoValue, ShellError, Span, Value};
 use serde::{Deserialize, Serialize};
