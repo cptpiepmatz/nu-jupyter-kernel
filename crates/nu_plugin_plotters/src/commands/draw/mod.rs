@@ -77,10 +77,9 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
             S2S::Line { point_size } => {
                 draw_line(&mut chart_context, series, shape_style, point_size)
             }
-            S2S::Bar { horizontal: false } => {
+            S2S::Bar => {
                 draw_vertical_bar(&mut chart_context, series, shape_style)
             }
-            S2S::Bar { horizontal: true } => todo!(),
         }
     }
 }

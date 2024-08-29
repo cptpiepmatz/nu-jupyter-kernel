@@ -19,7 +19,7 @@ pub struct Series2d {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Series2dStyle {
     Line { point_size: u32 },
-    Bar { horizontal: bool },
+    Bar,
 }
 
 impl IntoValue for Series2d {
@@ -44,9 +44,8 @@ impl IntoValue for Series2d {
                 record.push("style", "line".to_string().into_value(span));
                 record.push("point_size", point_size.into_value(span));
             }
-            Series2dStyle::Bar { horizontal } => {
+            Series2dStyle::Bar => {
                 record.push("style", "bar".to_string().into_value(span));
-                record.push("horizontal", horizontal.into_value(span));
             }
         }
 

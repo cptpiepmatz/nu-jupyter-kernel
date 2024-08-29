@@ -87,8 +87,7 @@ impl Command for BarSeries {
         let color = call.get_flag(engine_state, stack, "color")?;
         let filled = call.get_flag(engine_state, stack, "filled")?;
         let stroke_width = call.get_flag(engine_state, stack, "stroke-width")?;
-        let horizontal = call.get_flag(engine_state, stack, "horizontal")?;
-        BarSeries::run(self, input, color, filled, stroke_width, horizontal)
+        BarSeries::run(self, input, color, filled, stroke_width)
             .map(|v| PipelineData::Value(v, None))
     }
 }
@@ -124,7 +123,7 @@ impl nu_plugin::SimplePluginCommand for BarSeries {
         input: &Value,
     ) -> Result<Value, LabeledError> {
         let input = input.clone();
-        let (mut color, mut filled, mut stroke_width, mut horizontal) = Default::default();
+        let (mut color, mut filled, mut stroke_width) = Default::default();
         for (name, value) in call.named.clone() {
             fn extract_named<T: FromValue>(
                 name: impl ToString,
@@ -142,12 +141,11 @@ impl nu_plugin::SimplePluginCommand for BarSeries {
                 "color" => color = extract_named("color", value, name.span)?,
                 "filled" => filled = extract_named("filled", value, name.span)?,
                 "stroke-width" => stroke_width = extract_named("stroke-width", value, name.span)?,
-                "horizontal" => horizontal = extract_named("horizontal", value, name.span)?,
                 _ => continue,
             }
         }
 
-        BarSeries::run(self, input, color, filled, stroke_width, horizontal).map_err(Into::into)
+        BarSeries::run(self, input, color, filled, stroke_width).map_err(Into::into)
     }
 }
 
@@ -158,15 +156,12 @@ impl BarSeries {
         color: Option<Color>,
         filled: Option<bool>,
         stroke_width: Option<u32>,
-        horizontal: Option<bool>,
     ) -> Result<Value, ShellError> {
         let input_span = input.span();
         let series = super::series_from_value(input)?;
         let series = Series2d {
             series,
-            style: Series2dStyle::Bar {
-                horizontal: horizontal.unwrap_or(false),
-            },
+            style: Series2dStyle::Bar,
             color: color.unwrap_or(BLUE.into()),
             filled: filled.unwrap_or(true),
             stroke_width: stroke_width.unwrap_or(1),
