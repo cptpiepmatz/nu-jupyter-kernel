@@ -5,16 +5,16 @@ incompatible_commands = ["input", "exit", "run-external"]
 
 [nuju]
 name = "nuju"
-usage = "Control behavior of the kernel."
-extra_usage = """
+description = "Control behavior of the kernel."
+extra_description = """
 You must use one of the following subcommands.
 Using this command as-is will only produce this help message.
 """
 
 [display]
 name = "nuju display"
-usage = "Control the rendering of the current cell's output."
-extra_usage = """
+description = "Control the rendering of the current cell's output."
+extra_description = """
 Applies a filter to control how the output of the current cell is displayed. 
 This command can be positioned anywhere within the cell's code. It passes 
 through the cell's data, allowing it to be used effectively as the final 
@@ -36,8 +36,8 @@ description = "Force render output to be a classic nushell table"
 
 [external]
 name = "nuju external"
-usage = "Enable external commands for subsequent cells."
-extra_usage = """
+description = "Enable external commands for subsequent cells."
+extra_description = """
 Activates a setting that permits the use of external commands in all subsequent 
 cell evaluations within the notebook. This irreversible change enhances 
 flexibility for advanced tasks. By disabling external commands by default, 
@@ -48,5 +48,5 @@ search_terms = ["jupyter", "external", "run"]
 
 [print]
 name = "nuju print"
-usage = "Display data for this cell."
+description = "Display data for this cell."
 search_terms = ["jupyter", "print", "display", "cell", "output"]

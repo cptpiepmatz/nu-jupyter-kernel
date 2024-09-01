@@ -35,12 +35,12 @@ impl Command for External {
         COMMANDS_TOML.external.name
     }
 
-    fn usage(&self) -> &str {
-        COMMANDS_TOML.external.usage
+    fn description(&self) -> &str {
+        COMMANDS_TOML.external.description
     }
 
-    fn extra_usage(&self) -> &str {
-        COMMANDS_TOML.external.extra_usage
+    fn extra_description(&self) -> &str {
+        COMMANDS_TOML.external.extra_description
     }
 
     fn search_terms(&self) -> Vec<&str> {

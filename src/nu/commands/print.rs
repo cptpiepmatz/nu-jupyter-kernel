@@ -24,8 +24,8 @@ impl Command for Print {
         COMMANDS_TOML.print.name
     }
 
-    fn usage(&self) -> &str {
-        COMMANDS_TOML.print.usage
+    fn description(&self) -> &str {
+        COMMANDS_TOML.print.description
     }
 
     fn search_terms(&self) -> Vec<&str> {

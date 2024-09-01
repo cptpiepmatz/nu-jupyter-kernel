@@ -15,8 +15,8 @@ impl Command for Chart2d {
     fn signature(&self) -> Signature {
         Signature::new(Command::name(self))
             .add_help()
-            .usage(Command::usage(self))
-            .extra_usage(Command::extra_usage(self))
+            .description(Command::description(self))
+            .extra_description(Command::extra_description(self))
             .search_terms(
                 Command::search_terms(self)
                     .into_iter()
@@ -72,11 +72,11 @@ impl Command for Chart2d {
             .input_output_type(Type::list(value::Series2d::ty()), value::Chart2d::ty())
     }
 
-    fn usage(&self) -> &str {
+    fn description(&self) -> &str {
         "Construct a 2D chart."
     }
 
-    fn extra_usage(&self) -> &str {
+    fn extra_description(&self) -> &str {
         "A chart is a container for a list of series, any `plotters::series-2d` or \
          `list<plotters::series>` is collected into this container and may be rendered via `draw \
          svg` or `draw png`."
@@ -129,12 +129,12 @@ impl SimplePluginCommand for Chart2d {
         Command::signature(self)
     }
 
-    fn usage(&self) -> &str {
-        Command::usage(self)
+    fn description(&self) -> &str {
+        Command::description(self)
     }
 
-    fn extra_usage(&self) -> &str {
-        Command::extra_usage(self)
+    fn extra_description(&self) -> &str {
+        Command::extra_description(self)
     }
 
     fn search_terms(&self) -> Vec<&str> {

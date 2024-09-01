@@ -16,8 +16,8 @@ impl Command for LineSeries {
     fn signature(&self) -> Signature {
         Signature::new(Command::name(self))
             .add_help()
-            .usage(Command::usage(self))
-            .extra_usage(Command::extra_usage(self))
+            .description(Command::description(self))
+            .extra_description(Command::extra_description(self))
             .search_terms(
                 Command::search_terms(self)
                     .into_iter()
@@ -63,11 +63,11 @@ impl Command for LineSeries {
             )
     }
 
-    fn usage(&self) -> &str {
+    fn description(&self) -> &str {
         "Create a line series."
     }
 
-    fn extra_usage(&self) -> &str {
+    fn extra_description(&self) -> &str {
         "This series requires as input a list or stream of value pairs for the x and y axis."
     }
 
@@ -104,12 +104,12 @@ impl nu_plugin::SimplePluginCommand for LineSeries {
         Command::signature(self)
     }
 
-    fn usage(&self) -> &str {
-        Command::usage(self)
+    fn description(&self) -> &str {
+        Command::description(self)
     }
 
-    fn extra_usage(&self) -> &str {
-        Command::extra_usage(self)
+    fn extra_description(&self) -> &str {
+        Command::extra_description(self)
     }
 
     fn search_terms(&self) -> Vec<&str> {

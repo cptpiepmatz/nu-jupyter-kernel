@@ -18,7 +18,7 @@ impl Command for DrawTerminal {
     fn signature(&self) -> Signature {
         Signature::new(Command::name(self))
             .add_help()
-            .usage(Command::usage(self))
+            .description(Command::description(self))
             .search_terms(
                 Command::search_terms(self)
                     .into_iter()
@@ -28,7 +28,7 @@ impl Command for DrawTerminal {
             .input_output_type(value::Chart2d::ty(), Type::String)
     }
 
-    fn usage(&self) -> &str {
+    fn description(&self) -> &str {
         "Draws a chart to a sixel string. Compatible terminal emulators may render that."
     }
 
@@ -60,8 +60,8 @@ impl SimplePluginCommand for DrawTerminal {
         Command::signature(self)
     }
 
-    fn usage(&self) -> &str {
-        Command::usage(self)
+    fn description(&self) -> &str {
+        Command::description(self)
     }
 
     fn search_terms(&self) -> Vec<&str> {

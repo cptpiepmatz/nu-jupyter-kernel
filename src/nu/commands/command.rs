@@ -11,8 +11,8 @@ impl Command for Nuju {
         COMMANDS_TOML.nuju.name
     }
 
-    fn usage(&self) -> &str {
-        COMMANDS_TOML.nuju.usage
+    fn description(&self) -> &str {
+        COMMANDS_TOML.nuju.description
     }
 
     fn signature(&self) -> nu_protocol::Signature {
@@ -21,8 +21,8 @@ impl Command for Nuju {
             .input_output_types(vec![(Type::Nothing, Type::String)])
     }
 
-    fn extra_usage(&self) -> &str {
-        COMMANDS_TOML.nuju.extra_usage
+    fn extra_description(&self) -> &str {
+        COMMANDS_TOML.nuju.extra_description
     }
 
     fn run(

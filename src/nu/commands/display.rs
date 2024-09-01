@@ -13,12 +13,12 @@ impl Command for Display {
         COMMANDS_TOML.display.name
     }
 
-    fn usage(&self) -> &str {
-        COMMANDS_TOML.display.usage
+    fn description(&self) -> &str {
+        COMMANDS_TOML.display.description
     }
 
-    fn extra_usage(&self) -> &str {
-        COMMANDS_TOML.display.extra_usage
+    fn extra_description(&self) -> &str {
+        COMMANDS_TOML.display.extra_description
     }
 
     fn search_terms(&self) -> Vec<&str> {
