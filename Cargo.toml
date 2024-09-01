@@ -31,8 +31,7 @@ version = "0.1.0-wip"
 path = "crates/nu_plugin_plotters"
 optional = true
 
-[dependencies]
-# nu
+[workspace.dependencies]
 nu-cmd-extra = { version = "0.97" }
 nu-cmd-lang = { version = "0.97" }
 nu-cmd-plugin = { version = "0.97" }
@@ -40,6 +39,17 @@ nu-command = { version = "0.97", features = ["plugin"] }
 nu-engine = { version = "0.97" }
 nu-parser = { version = "0.97", features = ["plugin"] }
 nu-protocol = { version = "0.97", features = ["plugin"] }
+nu-plugin = { version = "0.97" }
+
+[dependencies]
+# nu
+nu-cmd-extra.workspace = true
+nu-cmd-lang.workspace = true
+nu-cmd-plugin.workspace = true
+nu-command.workspace = true
+nu-engine.workspace = true
+nu-parser.workspace = true
+nu-protocol.workspace = true
 
 # Cryptography and Security
 hmac = "0.12.1"
