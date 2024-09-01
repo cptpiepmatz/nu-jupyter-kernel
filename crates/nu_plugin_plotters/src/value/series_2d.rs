@@ -1,55 +1,57 @@
 use std::any::Any;
-use std::cmp;
+use std::{cmp, iter};
 
-use nu_protocol::{record, CustomValue, FromValue, IntoValue, ShellError, Span, Type, Value};
+use nu_protocol::{CustomValue, FromValue, IntoValue, Record, ShellError, Span, Type, Value};
 use serde::{Deserialize, Serialize};
 
 use super::color::Color;
 use super::{Coord1d, Coord2d, Range};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Series2d {
+pub enum Series2d {
+    Line(Line2dSeries),
+    Bar(Bar2dSeries),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, IntoValue)]
+pub struct Line2dSeries {
     pub series: Vec<Coord2d>,
-    pub style: Series2dStyle,
+    pub color: Color,
+    pub filled: bool,
+    pub stroke_width: u32,
+    pub point_size: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, IntoValue)]
+pub struct Bar2dSeries {
+    pub series: Vec<Coord2d>,
     pub color: Color,
     pub filled: bool,
     pub stroke_width: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Series2dStyle {
-    Line { point_size: u32 },
-    Bar,
+impl Series2d {
+    fn into_base_value(self, span: Span) -> Value {
+        let kind = match &self {
+            Series2d::Line(_) => "line",
+            Series2d::Bar(_) => "bar",
+        };
+        let kind = ("kind".to_string(), Value::string(kind, span));
+
+        let record = match self {
+            Series2d::Line(line) => line.into_value(span),
+            Series2d::Bar(bar) => bar.into_value(span),
+        };
+        let record = record.into_record().expect("structs derive IntoValue via Value::Record");
+
+        let iter = iter::once(kind).chain(record.into_iter());
+        Value::record(Record::from_iter(iter), span)
+    }
 }
 
 impl IntoValue for Series2d {
     fn into_value(self, span: Span) -> Value {
-        let Series2d {
-            series,
-            style,
-            color,
-            filled,
-            stroke_width,
-        } = self;
-
-        let mut record = record! {
-            "series" => series.into_value(span),
-            "color" => color.into_value(span),
-            "filled" => filled.into_value(span),
-            "stroke_width" => stroke_width.into_value(span),
-        };
-
-        match style {
-            Series2dStyle::Line { point_size } => {
-                record.push("style", "line".to_string().into_value(span));
-                record.push("point_size", point_size.into_value(span));
-            }
-            Series2dStyle::Bar => {
-                record.push("style", "bar".to_string().into_value(span));
-            }
-        }
-
-        Value::record(record, span)
+        Value::custom(Box::new(self), span)
     }
 }
 
@@ -86,7 +88,7 @@ impl CustomValue for Series2d {
     }
 
     fn to_base_value(&self, span: Span) -> Result<Value, ShellError> {
-        Ok(Series2d::into_value(self.clone(), span))
+        Ok(Series2d::into_base_value(self.clone(), span))
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -99,15 +101,22 @@ impl CustomValue for Series2d {
 }
 
 impl Series2d {
+    pub fn series(&self) -> &[Coord2d] {
+        match self {
+            Series2d::Line(line) => &line.series,
+            Series2d::Bar(bar) => &bar.series,
+        }
+    }
+
     // FIXME: maybe we need to rethink this range function
     fn range<A, M>(&self, axis: A, map: M) -> Option<Range>
     where
         A: Fn(&Coord2d) -> Coord1d,
         M: Fn(Coord1d) -> (Coord1d, Coord1d),
     {
-        let first = self.series.first()?;
+        let first = self.series().first()?;
         let (mut min, mut max) = (axis(first), axis(first));
-        for (lower, upper) in self.series.iter().map(axis).map(map) {
+        for (lower, upper) in self.series().iter().map(axis).map(map) {
             if lower < min {
                 min = lower;
             }
@@ -127,9 +136,9 @@ impl Series2d {
     pub fn x_range(&self) -> Option<Range> {
         self.range(
             |c| c.x,
-            |c| match self.style {
-                Series2dStyle::Line { .. } => (c, c),
-                Series2dStyle::Bar { .. } => (c - Coord1d::Float(0.5), c + Coord1d::Float(0.5)),
+            |c| match self {
+                Series2d::Line(_) => (c, c),
+                Series2d::Bar(_)=> (c - Coord1d::Float(0.5), c + Coord1d::Float(0.5)),
             },
         )
     }
@@ -137,9 +146,9 @@ impl Series2d {
     pub fn y_range(&self) -> Option<Range> {
         self.range(
             |c| c.y,
-            |c| match self.style {
-                Series2dStyle::Line { .. } => (c, c),
-                Series2dStyle::Bar { .. } => {
+            |c| match self {
+                Series2d::Line(_) => (c, c),
+                Series2d::Bar(_) => {
                     (cmp::min(Coord1d::Int(0), c), cmp::max(Coord1d::Int(0), c))
                 }
             },

@@ -1,9 +1,9 @@
 use nu_engine::command_prelude::*;
 use nu_plugin::{EngineInterface, EvaluatedCall};
-use nu_protocol::{FromValue, LabeledError};
+use nu_protocol::{FromValue, IntoValue, LabeledError};
 use plotters::style::BLUE;
 
-use crate::value::{Color, Series2d, Series2dStyle};
+use crate::value::{Color, Line2dSeries, Series2d};
 
 #[derive(Debug, Clone)]
 pub struct LineSeries;
@@ -162,16 +162,14 @@ impl LineSeries {
     ) -> Result<Value, ShellError> {
         let input_span = input.span();
         let series = super::series_from_value(input)?;
-        let series = Series2d {
+        let series = Line2dSeries {
             series,
-            style: Series2dStyle::Line {
-                point_size: point_size.unwrap_or(0),
-            },
             color: color.unwrap_or(BLUE.into()),
             filled: filled.unwrap_or(false),
             stroke_width: stroke_width.unwrap_or(1),
+            point_size: point_size.unwrap_or(0),
         };
 
-        Ok(Value::custom(Box::new(series), input_span))
+        Ok(Series2d::Line(series).into_value(input_span))
     }
 }

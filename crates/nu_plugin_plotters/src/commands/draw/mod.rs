@@ -4,7 +4,7 @@ use plotters::prelude::{Cartesian2d, DrawingArea, DrawingBackend, Rectangle};
 use plotters::series::LineSeries;
 use plotters::style::{RGBAColor, ShapeStyle, BLACK};
 
-use crate::value::{self, Coord1d, Coord2d, Range, RangeMetadata, Series2dStyle};
+use crate::value::{self, Bar2dSeries, Coord1d, Coord2d, Line2dSeries, Range, RangeMetadata, Series2d};
 
 mod svg;
 pub use svg::*;
@@ -25,7 +25,7 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
     if chart
         .series
         .iter()
-        .any(|series| matches!(series.style, Series2dStyle::Bar { .. }))
+        .any(|series| matches!(series, Series2d::Bar(_)))
     {
         x_range.metadata = Some(RangeMetadata {
             discrete_key_points: true,
@@ -58,38 +58,24 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
     let mut chart_context = chart_builder.build_cartesian_2d(x_range, y_range).unwrap();
 
     chart_context.configure_mesh().draw().unwrap();
-    for value::Series2d {
-        series,
-        style,
-        color,
-        filled,
-        stroke_width,
-    } in chart.series
-    {
-        let shape_style = ShapeStyle {
-            color: color.into(),
-            filled,
-            stroke_width,
-        };
-
-        type S2S = value::Series2dStyle;
-        match style {
-            S2S::Line { point_size } => {
-                draw_line(&mut chart_context, series, shape_style, point_size)
-            }
-            S2S::Bar => {
-                draw_vertical_bar(&mut chart_context, series, shape_style)
-            }
+    for series in chart.series {
+        match series {
+            value::Series2d::Line(series) => draw_line(&mut chart_context, series),
+            value::Series2d::Bar(series) => draw_vertical_bar(&mut chart_context, series),
         }
     }
 }
 
 fn draw_line<DB: DrawingBackend>(
     chart_context: &mut ChartContext<DB, Cartesian2d<Range, Range>>,
-    series: Vec<Coord2d>,
-    shape_style: ShapeStyle,
-    point_size: u32,
+    series: Line2dSeries,
 ) {
+    let Line2dSeries { series, color, filled, stroke_width, point_size } = series;
+    let shape_style = ShapeStyle {
+        color: color.into(),
+        filled,
+        stroke_width,
+    };
     let series = LineSeries::new(
         series.into_iter().map(|value::Coord2d { x, y }| (x, y)),
         shape_style,
@@ -100,9 +86,14 @@ fn draw_line<DB: DrawingBackend>(
 
 fn draw_vertical_bar<DB: DrawingBackend>(
     chart_context: &mut ChartContext<DB, Cartesian2d<Range, Range>>,
-    series: Vec<Coord2d>,
-    shape_style: ShapeStyle,
+    series: Bar2dSeries,
 ) {
+    let Bar2dSeries { series, color, filled, stroke_width } = series;
+    let shape_style = ShapeStyle {
+        color: color.into(),
+        filled,
+        stroke_width,
+    };
     let rect_iter = series.into_iter().map(|Coord2d { x, y }| {
         let half_width = Coord1d::Float(0.8) / Coord1d::Int(2);
         let value_point = (x - half_width, y);
