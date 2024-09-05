@@ -6,7 +6,9 @@ use std::sync::Arc;
 
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{EngineState, Stack, StateDelta, StateWorkingSet};
-use nu_protocol::{ParseError, PipelineData, ShellError, Signals, Span, Value, NU_VARIABLE_ID};
+use nu_protocol::{
+    IntoValue, ParseError, PipelineData, ShellError, Signals, Span, NU_VARIABLE_ID,
+};
 use thiserror::Error;
 
 pub mod commands;
@@ -32,11 +34,15 @@ pub fn initial_engine_state() -> EngineState {
 }
 
 fn add_env_context(mut engine_state: EngineState) -> EngineState {
+    for (key, value) in env::vars() {
+        engine_state.add_env_var(key, value.into_value(Span::unknown()));
+    }
+
     if let Ok(current_dir) = env::current_dir() {
-        engine_state.add_env_var("PWD".to_owned(), Value::String {
-            val: current_dir.to_string_lossy().to_string(),
-            internal_span: Span::unknown(),
-        });
+        engine_state.add_env_var(
+            "PWD".into(),
+            current_dir.to_string_lossy().into_value(Span::unknown()),
+        );
     }
 
     engine_state
