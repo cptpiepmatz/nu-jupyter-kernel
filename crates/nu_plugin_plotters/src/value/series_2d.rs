@@ -42,7 +42,9 @@ impl Series2d {
             Series2d::Line(line) => line.into_value(span),
             Series2d::Bar(bar) => bar.into_value(span),
         };
-        let record = record.into_record().expect("structs derive IntoValue via Value::Record");
+        let record = record
+            .into_record()
+            .expect("structs derive IntoValue via Value::Record");
 
         let iter = iter::once(kind).chain(record.into_iter());
         Value::record(Record::from_iter(iter), span)
@@ -138,7 +140,7 @@ impl Series2d {
             |c| c.x,
             |c| match self {
                 Series2d::Line(_) => (c, c),
-                Series2d::Bar(_)=> (c - Coord1d::Float(0.5), c + Coord1d::Float(0.5)),
+                Series2d::Bar(_) => (c - Coord1d::Float(0.5), c + Coord1d::Float(0.5)),
             },
         )
     }
@@ -148,9 +150,7 @@ impl Series2d {
             |c| c.y,
             |c| match self {
                 Series2d::Line(_) => (c, c),
-                Series2d::Bar(_) => {
-                    (cmp::min(Coord1d::Int(0), c), cmp::max(Coord1d::Int(0), c))
-                }
+                Series2d::Bar(_) => (cmp::min(Coord1d::Int(0), c), cmp::max(Coord1d::Int(0), c)),
             },
         )
     }

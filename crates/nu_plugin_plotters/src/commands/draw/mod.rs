@@ -4,7 +4,9 @@ use plotters::prelude::{Cartesian2d, DrawingArea, DrawingBackend, Rectangle};
 use plotters::series::LineSeries;
 use plotters::style::{RGBAColor, ShapeStyle, BLACK};
 
-use crate::value::{self, Bar2dSeries, Coord1d, Coord2d, Line2dSeries, Range, RangeMetadata, Series2d};
+use crate::value::{
+    self, Bar2dSeries, Coord1d, Coord2d, Line2dSeries, Range, RangeMetadata, Series2d,
+};
 
 mod svg;
 pub use svg::*;
@@ -70,7 +72,13 @@ fn draw_line<DB: DrawingBackend>(
     chart_context: &mut ChartContext<DB, Cartesian2d<Range, Range>>,
     series: Line2dSeries,
 ) {
-    let Line2dSeries { series, color, filled, stroke_width, point_size } = series;
+    let Line2dSeries {
+        series,
+        color,
+        filled,
+        stroke_width,
+        point_size,
+    } = series;
     let shape_style = ShapeStyle {
         color: color.into(),
         filled,
@@ -88,7 +96,12 @@ fn draw_vertical_bar<DB: DrawingBackend>(
     chart_context: &mut ChartContext<DB, Cartesian2d<Range, Range>>,
     series: Bar2dSeries,
 ) {
-    let Bar2dSeries { series, color, filled, stroke_width } = series;
+    let Bar2dSeries {
+        series,
+        color,
+        filled,
+        stroke_width,
+    } = series;
     let shape_style = ShapeStyle {
         color: color.into(),
         filled,
