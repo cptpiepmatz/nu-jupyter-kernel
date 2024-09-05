@@ -66,61 +66,9 @@ pub struct KonstDataVersion {
     pub nu: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, IntoValue, FromValue)]
 pub struct KonstDataMessage {
     pub zmq_identities: Vec<Bytes>,
     pub header: Header,
     pub parent_header: Option<Header>,
-}
-
-#[derive(Debug, Clone, IntoValue, FromValue)]
-struct KonstDataMessageDTO {
-    // FIXME: Vec<u8> doesn't allow loading from list<int>
-    pub zmq_identities: Vec<Vec<u32>>,
-    pub header: Header,
-    pub parent_header: Option<Header>,
-}
-
-impl From<KonstDataMessage> for KonstDataMessageDTO {
-    fn from(value: KonstDataMessage) -> Self {
-        KonstDataMessageDTO {
-            zmq_identities: value
-                .zmq_identities
-                .into_iter()
-                .map(|b| b.into_iter().map(|n| n as u32).collect())
-                .collect(),
-            header: value.header,
-            parent_header: value.parent_header,
-        }
-    }
-}
-
-impl From<KonstDataMessageDTO> for KonstDataMessage {
-    fn from(value: KonstDataMessageDTO) -> Self {
-        KonstDataMessage {
-            zmq_identities: value
-                .zmq_identities
-                .into_iter()
-                .map(|b| Bytes::from_iter(b.into_iter().map(|n| n as u8)))
-                .collect(),
-            header: value.header,
-            parent_header: value.parent_header,
-        }
-    }
-}
-
-impl IntoValue for KonstDataMessage {
-    fn into_value(self, span: Span) -> nu_protocol::Value {
-        KonstDataMessageDTO::from(self).into_value(span)
-    }
-}
-
-impl FromValue for KonstDataMessage {
-    fn from_value(v: nu_protocol::Value) -> Result<Self, ShellError> {
-        KonstDataMessageDTO::from_value(v).map(KonstDataMessage::from)
-    }
-
-    fn expected_type() -> Type {
-        KonstDataMessageDTO::expected_type()
-    }
 }
