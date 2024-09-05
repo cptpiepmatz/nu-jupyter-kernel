@@ -54,6 +54,7 @@ pub async fn handle(mut ctx: HandlerContext, mut shutdown: broadcast::Receiver<S
             Select::Left(Ok(Shutdown { restart: true })) => {
                 ctx.engine_state = initial_engine_state.clone();
                 ctx.stack = initial_stack.clone();
+                // TODO: check if cell counter should get a reset too
                 continue;
             }
             Select::Left(Err(_)) => break,
