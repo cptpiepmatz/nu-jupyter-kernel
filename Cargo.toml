@@ -25,46 +25,38 @@ plotting = ["nu-plotters"]
 members = ["crates/nu_plugin_plotters"]
 
 [workspace.dependencies.nu-cmd-extra]
-git = "https://github.com/devyn/nushell.git"
-branch = "remove-bincode"
+git = "https://github.com/nushell/nushell.git"
 version = "0.97.2"
 
 [workspace.dependencies.nu-cmd-lang]
-git = "https://github.com/devyn/nushell.git"
-branch = "remove-bincode"
+git = "https://github.com/nushell/nushell.git"
 version = "0.97.2"
 
 [workspace.dependencies.nu-cmd-plugin]
-git = "https://github.com/devyn/nushell.git"
-branch = "remove-bincode"
+git = "https://github.com/nushell/nushell.git"
 version = "0.97.2"
 
 [workspace.dependencies.nu-command]
-git = "https://github.com/devyn/nushell.git"
-branch = "remove-bincode"
+git = "https://github.com/nushell/nushell.git"
 features = ["plugin"]
 version = "0.97.2"
 
 [workspace.dependencies.nu-engine]
-git = "https://github.com/devyn/nushell.git"
-branch = "remove-bincode"
+git = "https://github.com/nushell/nushell.git"
 version = "0.97.2"
 
 [workspace.dependencies.nu-parser]
-git = "https://github.com/devyn/nushell.git"
-branch = "remove-bincode"
+git = "https://github.com/nushell/nushell.git"
 features = ["plugin"]
 version = "0.97.2"
 
 [workspace.dependencies.nu-protocol]
-git = "https://github.com/devyn/nushell.git"
-branch = "remove-bincode"
+git = "https://github.com/nushell/nushell.git"
 features = ["plugin"]
 version = "0.97.2"
 
 [workspace.dependencies.nu-plugin]
-git = "https://github.com/devyn/nushell.git"
-branch = "remove-bincode"
+git = "https://github.com/nushell/nushell.git"
 version = "0.97.2"
 
 # plotting
