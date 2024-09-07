@@ -1,9 +1,10 @@
-use std::fmt::Display;
+use std::{fmt::Display, io};
 use std::fs;
 use std::net::Ipv4Addr;
 use std::path::Path;
 
 use serde::{Deserialize, Deserializer};
+use thiserror::Error;
 
 #[derive(Debug, Deserialize)]
 pub struct ConnectionFile {
@@ -20,10 +21,18 @@ pub struct ConnectionFile {
     pub key: Vec<u8>,
 }
 
+#[derive(Debug, Error)]
+pub enum ReadConnectionFileError {
+    #[error("could not read connection file")]
+    ReadFile(#[from] io::Error),
+    #[error("could not parse connection file")]
+    Parse(#[from] serde_json::Error)
+}
+
 impl ConnectionFile {
-    pub fn from_path(path: impl AsRef<Path>) -> Result<ConnectionFile, ()> {
-        let contents = fs::read_to_string(path).unwrap();
-        let connection_file: ConnectionFile = serde_json::from_str(&contents).unwrap();
+    pub fn from_path(path: impl AsRef<Path>) -> Result<ConnectionFile, ReadConnectionFileError> {
+        let contents = fs::read_to_string(path)?;
+        let connection_file: ConnectionFile = serde_json::from_str(&contents)?;
         Ok(connection_file)
     }
 }
