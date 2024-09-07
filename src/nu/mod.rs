@@ -1,14 +1,13 @@
+use std::collections::HashMap;
 use std::env;
-use std::fmt::Debug;
+use std::fmt::{Debug, Write};
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{EngineState, Stack, StateDelta, StateWorkingSet};
-use nu_protocol::{
-    IntoValue, ParseError, PipelineData, ShellError, Signals, Span, NU_VARIABLE_ID,
-};
+use nu_protocol::{ParseError, PipelineData, ShellError, Signals, Span, Value, NU_VARIABLE_ID};
 use thiserror::Error;
 
 pub mod commands;
@@ -19,11 +18,12 @@ pub mod render;
 pub fn initial_engine_state() -> EngineState {
     // TODO: compare with nu_cli::get_engine_state for other contexts
     let engine_state = nu_cmd_lang::create_default_context();
+    let engine_state = configure_engine_state(engine_state);
+    let engine_state = add_env_context(engine_state);
+
     let engine_state = nu_command::add_shell_command_context(engine_state);
     let engine_state = nu_cmd_extra::add_extra_command_context(engine_state);
     let engine_state = nu_cmd_plugin::add_plugin_command_context(engine_state);
-    let engine_state = add_env_context(engine_state);
-    let engine_state = configure_engine_state(engine_state);
 
     #[cfg(feature = "nu-plotters")]
     let engine_state = nu_plotters::add_plotters_command_context(engine_state);
@@ -34,15 +34,35 @@ pub fn initial_engine_state() -> EngineState {
 }
 
 fn add_env_context(mut engine_state: EngineState) -> EngineState {
+    let mut env_map = HashMap::new();
+
     for (key, value) in env::vars() {
-        engine_state.add_env_var(key, value.into_value(Span::unknown()));
+        env_map.insert(key, value);
     }
 
     if let Ok(current_dir) = env::current_dir() {
-        engine_state.add_env_var(
-            "PWD".into(),
-            current_dir.to_string_lossy().into_value(Span::unknown()),
-        );
+        env_map.insert("PWD".into(), current_dir.to_string_lossy().into_owned());
+    }
+
+    let mut toml = String::new();
+    let mut values = Vec::new();
+    let mut line_offset = 0;
+    for (key, value) in env_map {
+        let line = format!("{key} = {value:?}");
+        let start = key.len() + " = ".len() + line_offset;
+        let end = line_offset + line.len();
+        let span = Span::new(start, end);
+        line_offset += line.len() + 1;
+        writeln!(toml, "{line}").expect("infallible");
+        values.push((key, Value::string(value, span)));
+    }
+
+    let span_offset = engine_state.next_span_start();
+    engine_state.add_file("Host Environment Variables".into(), toml.into_bytes().into());
+    for (key, value) in values {
+        let span = value.span();
+        let span = Span::new(span.start + span_offset, span.end + span_offset);
+        engine_state.add_env_var(key, value.with_span(span));
     }
 
     engine_state
