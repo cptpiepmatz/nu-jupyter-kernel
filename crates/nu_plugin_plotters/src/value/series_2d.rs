@@ -46,7 +46,7 @@ impl Series2d {
             .into_record()
             .expect("structs derive IntoValue via Value::Record");
 
-        let iter = iter::once(kind).chain(record.into_iter());
+        let iter = iter::once(kind).chain(record);
         Value::record(Record::from_iter(iter), span)
     }
 }
@@ -64,7 +64,7 @@ impl FromValue for Series2d {
         match v.as_any().downcast_ref::<Self>() {
             Some(v) => Ok(v.clone()),
             None => {
-                return Err(ShellError::CantConvert {
+                Err(ShellError::CantConvert {
                     to_type: Self::ty().to_string(),
                     from_type: v.type_name(),
                     span,

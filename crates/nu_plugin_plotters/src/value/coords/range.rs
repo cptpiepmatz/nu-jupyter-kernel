@@ -110,7 +110,7 @@ impl Ranged for Range {
         {
             let lower = self.min.ceil();
             let upper = self.max.floor();
-            return (lower..=upper).into_iter().map(Coord1d::Int).collect();
+            return (lower..=upper).map(Coord1d::Int).collect();
         }
 
         match (self.min, self.max) {

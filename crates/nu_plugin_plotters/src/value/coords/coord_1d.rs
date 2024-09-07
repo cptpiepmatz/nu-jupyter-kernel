@@ -105,19 +105,19 @@ impl PartialEq for Coord1d {
 
 impl Ord for Coord1d {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
-        match self.partial_cmp(other) {
+        let this = (*self).as_float();
+        let that = (*other).as_float();
+        match PartialOrd::partial_cmp(&this, &that) {
             Some(ord) => ord,
-            // this case shouldn't happen as we ensure that the float is a finite number
-            None => panic!("Coord1::Float was not a number"),
+            // we ensure that float is always a valid value
+            None => panic!("self was NaN"),
         }
     }
 }
 
 impl PartialOrd for Coord1d {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        let this = (*self).as_float();
-        let that = (*other).as_float();
-        cmp::PartialOrd::partial_cmp(&this, &that)
+        Some(self.cmp(other))
     }
 }
 

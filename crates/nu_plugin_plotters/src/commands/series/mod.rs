@@ -12,7 +12,7 @@ fn series_from_value(input: Value) -> Result<Vec<Coord2d>, ShellError> {
     let input_span = input.span();
     let input = input.into_list()?;
     let first = input
-        .get(0)
+        .first()
         .ok_or_else(|| ShellError::PipelineEmpty {
             dst_span: input_span,
         })?

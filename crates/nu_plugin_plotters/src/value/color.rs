@@ -74,8 +74,7 @@ impl FromValue for Color {
                 "white" => Ok(WHITE.into()),
                 "yellow" => Ok(YELLOW.into()),
                 val => {
-                    if val.starts_with("#") {
-                        let val = &val[1..];
+                    if let Some(val) = val.strip_prefix("#") {
                         match val.len() {
                             6 => {
                                 let span = |offset| {
@@ -166,6 +165,7 @@ impl FromValue for ColorChannel {
         const U8MIN: i64 = u8::MIN as i64;
         const U8MAX: i64 = u8::MAX as i64;
         #[allow(overlapping_range_endpoints)]
+        #[allow(clippy::match_overlapping_arm)]
         match value {
             U8MIN..=U8MAX => Ok(ColorChannel(value as u8)),
             i64::MIN..U8MIN => Err(ShellError::GenericError {

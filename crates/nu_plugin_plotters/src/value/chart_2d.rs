@@ -43,7 +43,7 @@ impl FromValue for Chart2d {
         match v.as_any().downcast_ref::<Self>() {
             Some(v) => Ok(v.clone()),
             None => {
-                return Err(ShellError::CantConvert {
+                Err(ShellError::CantConvert {
                     to_type: Self::ty().to_string(),
                     from_type: v.type_name(),
                     span,
