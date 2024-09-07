@@ -13,7 +13,7 @@ use crate::jupyter::kernel_info::KernelInfo;
 use crate::jupyter::messages::iopub::{self, ExecuteResult, IopubBroacast, Status};
 use crate::jupyter::messages::multipart::Multipart;
 use crate::jupyter::messages::shell::{
-    ExecuteReply, ExecuteRequest, ShellReply, ShellReplyOk, ShellRequest,
+    ExecuteReply, ExecuteRequest, IsCompleteReply, IsCompleteRequest, ShellReply, ShellReplyOk, ShellRequest
 };
 use crate::jupyter::messages::{Header, Message, Metadata};
 use crate::jupyter::Shutdown;
@@ -74,7 +74,7 @@ pub async fn handle(mut ctx: HandlerContext, mut shutdown: broadcast::Receiver<S
                 // take the context out temporarily to allow execution on another thread
                 ctx = handle_execute_request(ctx, &message, request).await;
             }
-            ShellRequest::IsComplete(_) => todo!(),
+            ShellRequest::IsComplete(request) => handle_is_complete_request(&mut ctx, &message, request).await,
         }
 
         send_status(&mut ctx, &message, Status::Idle).await;
@@ -314,6 +314,30 @@ async fn handle_execute_results(
         user_expressions: json!({}),
     };
     let reply = ShellReply::Ok(ShellReplyOk::Execute(reply));
+    let reply = Message {
+        zmq_identities: message.zmq_identities.clone(),
+        header: Header::new(msg_type),
+        parent_header: Some(message.header.clone()),
+        metadata: Metadata::empty(),
+        content: reply,
+        buffers: vec![],
+    };
+    reply
+        .into_multipart()
+        .unwrap()
+        .send(&mut ctx.socket)
+        .await
+        .unwrap();
+}
+
+async fn handle_is_complete_request(
+    ctx: &mut HandlerContext, 
+    message: &Message<ShellRequest>,
+    request: &IsCompleteRequest,
+) {
+    let reply = IsCompleteReply::Unknown;
+    let reply = ShellReply::Ok(ShellReplyOk::IsComplete(reply));
+    let msg_type = ShellReply::msg_type(&message.header.msg_type).unwrap();
     let reply = Message {
         zmq_identities: message.zmq_identities.clone(),
         header: Header::new(msg_type),
