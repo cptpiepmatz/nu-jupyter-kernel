@@ -8,6 +8,7 @@ use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{Command, EngineState, Stack};
 use nu_protocol::{PipelineData, ShellError, Span, Spanned, Value};
 use thiserror::Error;
+use crate::error::KernelError;
 
 macro_rules! create_format_decl_ids {
     ($($field:ident : $search_str:expr),+ $(,)?) => {
@@ -17,11 +18,11 @@ macro_rules! create_format_decl_ids {
         }
 
         impl FormatDeclIds {
-            pub fn find(engine_state: &EngineState) -> Result<FormatDeclIds, ()> {
+            pub fn find(engine_state: &EngineState) -> Result<FormatDeclIds, KernelError> {
                 $(let mut $field = None;)+
 
                 for (str_bytes, decl_id) in engine_state.get_decls_sorted(false) {
-                    let s = String::from_utf8(str_bytes).unwrap();
+                    let Ok(s) = String::from_utf8(str_bytes) else { continue };
                     match s.as_str() {
                         $($search_str => $field = Some(decl_id),)+
                         _ => (),
@@ -34,7 +35,9 @@ macro_rules! create_format_decl_ids {
                     });
                 }
 
-                todo!("handle not being able to find all formats")
+                let mut missing = Vec::new();
+                $(if $field.is_none() { missing.push($search_str) })+
+                Err(KernelError::MissingFormatDecls {missing})
             }
         }
     };

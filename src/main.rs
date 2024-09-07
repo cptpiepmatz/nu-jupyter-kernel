@@ -21,6 +21,7 @@ use zeromq::{PubSocket, RepSocket, RouterSocket, Socket, ZmqResult};
 
 use crate::jupyter::messages::DIGESTER;
 
+mod error;
 mod handlers;
 mod jupyter;
 mod nu;
