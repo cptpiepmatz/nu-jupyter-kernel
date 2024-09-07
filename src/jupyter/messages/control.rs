@@ -8,7 +8,7 @@ pub enum ControlRequest {
     KernelInfo,
     Shutdown(Shutdown),
     Interrupt,
-    Debug, // TODO: check if this is reasonable
+    Debug(DebugRequest),
 }
 
 impl ControlRequest {
@@ -17,7 +17,7 @@ impl ControlRequest {
             "kernel_info_request" => Ok(Self::KernelInfo),
             "shutdown_request" => Ok(Self::Shutdown(serde_json::from_str(body).unwrap())),
             "interrupt_request" => Ok(Self::Interrupt),
-            "debug_request" => todo!(),
+            "debug_request" => Ok(Self::Debug(serde_json::from_str(body).unwrap())),
             _ => {
                 eprintln!("found it here: {variant}");
 
@@ -56,8 +56,63 @@ impl ControlReply {
 #[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
 pub enum ControlReplyOk {
-    KernelInfo(Box<KernelInfo>),
+    KernelInfo(KernelInfo),
     Shutdown(Shutdown),
     Interrupt,
-    Debug,
+    Debug(DebugReply),
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(tag = "type", rename = "request")]
+pub struct DebugRequest {
+    pub command: DebugRequestCommand
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub enum DebugRequestCommand {
+    DumpCell,
+    DebugInfo,
+    InspectVariables,
+    RichInspectVariables,
+    CopyToGlobals,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(tag = "type", rename = "response")]
+pub struct DebugReply {
+    pub success: bool,
+    pub body: DebugReplyBody,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum DebugReplyBody {
+    DumpCell,
+    DebugInfo {
+        is_started: bool,
+        hash_method: String,
+        hash_seed: String,
+        tmp_file_prefix: String,
+        tmp_file_suffix: String,
+        breakpoints: Vec<DebugBreakpoint>,
+        stopped_threads: Vec<usize>,
+        rich_rendering: bool,
+        exception_paths: Vec<String>,
+    },
+    InspectVariables,
+    RichInspectVariables,
+    CopyToGlobals,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct DebugBreakpoint {
+    pub source: String,
+    pub breakpoints: Vec<SourceBreakpoint>,
+}
+
+// spec: https://microsoft.github.io/debug-adapter-protocol/specification#Types_SourceBreakpoint
+#[derive(Debug, Serialize, Clone)]
+pub struct SourceBreakpoint {
+    
 }

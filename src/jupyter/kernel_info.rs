@@ -64,7 +64,7 @@ impl KernelInfo {
                 file_extension: ".nu".to_owned(),
             },
             banner: include_str!("../../banner.txt").to_owned(),
-            debugger: false,
+            debugger: true,
             help_links: [
                 ("Discord", "https://discord.gg/NtAbbGn"),
                 ("GitHub", "https://github.com/nushell/nushell"),

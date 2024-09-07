@@ -6,7 +6,7 @@ use std::time::Duration;
 use tokio::sync::broadcast;
 
 use crate::jupyter::kernel_info::KernelInfo;
-use crate::jupyter::messages::control::{ControlReply, ControlReplyOk, ControlRequest};
+use crate::jupyter::messages::control::{ControlReply, ControlReplyOk, ControlRequest, DebugReply, DebugReplyBody, DebugRequest, DebugRequestCommand};
 use crate::jupyter::messages::{Header, Message, Metadata};
 use crate::jupyter::Shutdown;
 use crate::ControlSocket;
@@ -30,14 +30,14 @@ pub async fn handle(
             ControlRequest::Interrupt => {
                 handle_interrupt_request(&mut socket, &message, interrupt_signal.deref()).await
             }
-            ControlRequest::Debug => todo!(),
+            ControlRequest::Debug(DebugRequest { command }) => handle_debug_request(&mut socket, &message, command).await,
         }
     }
 }
 
 async fn handle_kernel_info_request(socket: &mut ControlSocket, message: &Message<ControlRequest>) {
     let kernel_info = KernelInfo::get();
-    let reply = ControlReply::Ok(ControlReplyOk::KernelInfo(Box::new(kernel_info)));
+    let reply = ControlReply::Ok(ControlReplyOk::KernelInfo(kernel_info));
     let msg_type = ControlReply::msg_type(&message.header.msg_type).unwrap();
     let reply = Message {
         zmq_identities: message.zmq_identities.clone(),
@@ -88,6 +88,38 @@ async fn handle_interrupt_request(
     }
 
     let reply = ControlReply::Ok(ControlReplyOk::Interrupt);
+    let msg_type = ControlReply::msg_type(&message.header.msg_type).unwrap();
+    let reply = Message {
+        zmq_identities: message.zmq_identities.clone(),
+        header: Header::new(msg_type),
+        parent_header: Some(message.header.clone()),
+        metadata: Metadata::empty(),
+        content: reply,
+        buffers: vec![],
+    };
+    reply.into_multipart().unwrap().send(socket).await.unwrap();
+}
+
+async fn handle_debug_request(
+    socket: &mut ControlSocket,
+    message: &Message<ControlRequest>,
+    command: &DebugRequestCommand
+) {
+    dbg!(command);
+
+    let body = DebugReplyBody::DebugInfo { 
+        is_started: false, 
+        hash_method: "Murmur2".into(), 
+        hash_seed: "seeed".into(), 
+        tmp_file_prefix: "".into(), 
+        tmp_file_suffix: "".into(), 
+        breakpoints: vec![], 
+        stopped_threads: vec![], 
+        rich_rendering: false, 
+        exception_paths: vec![],
+    };
+    let reply = DebugReply { success: true, body };
+    let reply = ControlReply::Ok(ControlReplyOk::Debug(reply));
     let msg_type = ControlReply::msg_type(&message.header.msg_type).unwrap();
     let reply = Message {
         zmq_identities: message.zmq_identities.clone(),

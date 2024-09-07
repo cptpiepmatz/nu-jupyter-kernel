@@ -76,6 +76,8 @@ fn kernel_manifest() -> serde_json::Value {
         "language": "nushell",
         "interrupt_mode": "message",
         "env": {},
-        "metadata": {}
+        "metadata": {
+            "debugger": true
+        }
     })
 }
