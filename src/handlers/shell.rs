@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use mime::Mime;
+use nu_protocol::cli_error::CliError;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::PipelineData;
 use parking_lot::Mutex;
@@ -221,7 +222,7 @@ async fn handle_execute_error(
         .code()
         .unwrap_or_else(|| Box::new(format_args!("nu-jupyter-kernel::unknown-error")))
         .to_string();
-    let value = nu_protocol::format_error(&working_set, report);
+    let value = format!("Error: {:?}", CliError(report, &working_set));
     // TODO: for traceback use error source
     let traceback = vec![];
 
