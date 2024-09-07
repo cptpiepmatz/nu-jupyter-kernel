@@ -59,8 +59,7 @@ impl KernelInfo {
                     .nu_engine
                     .version
                     .to_owned(),
-                // TODO: verify this
-                mimetype: "text/nu".to_owned(),
+                mimetype: "text/x-nushell".to_owned(),
                 file_extension: ".nu".to_owned(),
             },
             banner: include_str!("../../banner.txt").to_owned(),
