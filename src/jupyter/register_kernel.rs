@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
-use std::{env, fs};
+use std::{env, fs, io};
 
 use clap::ValueEnum;
 use serde_json::json;
+use thiserror::Error;
 
 #[derive(Debug, ValueEnum, Clone, Copy)]
 pub enum RegisterLocation {
@@ -10,16 +11,27 @@ pub enum RegisterLocation {
     System,
 }
 
-pub fn register_kernel(location: RegisterLocation) {
+#[derive(Debug, Error)]
+pub enum RegisterKernelError {
+    #[error(transparent)]
+    Io(#[from] io::Error),
+
+    #[error("could not format kernel manifest")]
+    Format(#[from] serde_json::Error),
+}
+
+pub fn register_kernel(location: RegisterLocation) -> Result<PathBuf, RegisterKernelError> {
     let path = kernel_path(location);
     let path = path.as_ref();
-    // TODO: handle errors well here
-    fs::create_dir_all(path).unwrap();
+    fs::create_dir_all(path)?;
     let mut file_path = PathBuf::from(path);
     file_path.push("kernel.json");
-    let manifest = serde_json::to_string_pretty(&kernel_manifest()).unwrap();
-    fs::write(&file_path, manifest).unwrap();
+    let manifest = serde_json::to_string_pretty(&kernel_manifest())?;
+    fs::write(&file_path, manifest)?;
+
+    // TODO: move this message elsewhere
     println!("Registered kernel to {}", path.display());
+    Ok(file_path)
 }
 
 fn kernel_path(location: RegisterLocation) -> impl AsRef<Path> {
