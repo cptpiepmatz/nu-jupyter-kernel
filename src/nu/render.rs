@@ -8,6 +8,7 @@ use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{Command, EngineState, Stack};
 use nu_protocol::{PipelineData, ShellError, Span, Spanned, Value};
 use thiserror::Error;
+
 use crate::error::KernelError;
 
 macro_rules! create_format_decl_ids {

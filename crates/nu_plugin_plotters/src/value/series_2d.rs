@@ -63,14 +63,12 @@ impl FromValue for Series2d {
         let v = v.into_custom_value()?;
         match v.as_any().downcast_ref::<Self>() {
             Some(v) => Ok(v.clone()),
-            None => {
-                Err(ShellError::CantConvert {
-                    to_type: Self::ty().to_string(),
-                    from_type: v.type_name(),
-                    span,
-                    help: None,
-                })
-            }
+            None => Err(ShellError::CantConvert {
+                to_type: Self::ty().to_string(),
+                from_type: v.type_name(),
+                span,
+                help: None,
+            }),
         }
     }
 

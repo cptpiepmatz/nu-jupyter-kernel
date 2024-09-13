@@ -58,7 +58,10 @@ fn add_env_context(mut engine_state: EngineState) -> EngineState {
     }
 
     let span_offset = engine_state.next_span_start();
-    engine_state.add_file("Host Environment Variables".into(), toml.into_bytes().into());
+    engine_state.add_file(
+        "Host Environment Variables".into(),
+        toml.into_bytes().into(),
+    );
     for (key, value) in values {
         let span = value.span();
         let span = Span::new(span.start + span_offset, span.end + span_offset);
@@ -72,8 +75,9 @@ fn configure_engine_state(mut engine_state: EngineState) -> EngineState {
     engine_state.history_enabled = false;
     engine_state.is_interactive = false;
     engine_state.is_login = false;
-    
-    // if we cannot access the current dir, we probably also cannot access the subdirectories
+
+    // if we cannot access the current dir, we probably also cannot access the
+    // subdirectories
     if let Ok(mut config_dir) = env::current_dir() {
         config_dir.push(".nu");
         engine_state.set_config_path("config-path", config_dir.join("config.nu"));

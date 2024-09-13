@@ -13,7 +13,8 @@ use crate::jupyter::kernel_info::KernelInfo;
 use crate::jupyter::messages::iopub::{self, ExecuteResult, IopubBroacast, Status};
 use crate::jupyter::messages::multipart::Multipart;
 use crate::jupyter::messages::shell::{
-    ExecuteReply, ExecuteRequest, IsCompleteReply, IsCompleteRequest, ShellReply, ShellReplyOk, ShellRequest
+    ExecuteReply, ExecuteRequest, IsCompleteReply, IsCompleteRequest, ShellReply, ShellReplyOk,
+    ShellRequest,
 };
 use crate::jupyter::messages::{Header, Message, Metadata};
 use crate::jupyter::Shutdown;
@@ -74,7 +75,9 @@ pub async fn handle(mut ctx: HandlerContext, mut shutdown: broadcast::Receiver<S
                 // take the context out temporarily to allow execution on another thread
                 ctx = handle_execute_request(ctx, &message, request).await;
             }
-            ShellRequest::IsComplete(request) => handle_is_complete_request(&mut ctx, &message, request).await,
+            ShellRequest::IsComplete(request) => {
+                handle_is_complete_request(&mut ctx, &message, request).await
+            }
         }
 
         send_status(&mut ctx, &message, Status::Idle).await;
@@ -331,7 +334,7 @@ async fn handle_execute_results(
 }
 
 async fn handle_is_complete_request(
-    ctx: &mut HandlerContext, 
+    ctx: &mut HandlerContext,
     message: &Message<ShellRequest>,
     request: &IsCompleteRequest,
 ) {

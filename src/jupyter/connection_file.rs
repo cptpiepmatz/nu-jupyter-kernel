@@ -1,7 +1,7 @@
-use std::{fmt::Display, io};
-use std::fs;
+use std::fmt::Display;
 use std::net::Ipv4Addr;
 use std::path::Path;
+use std::{fs, io};
 
 use serde::{Deserialize, Deserializer};
 use thiserror::Error;
@@ -26,7 +26,7 @@ pub enum ReadConnectionFileError {
     #[error("could not read connection file")]
     ReadFile(#[from] io::Error),
     #[error("could not parse connection file")]
-    Parse(#[from] serde_json::Error)
+    Parse(#[from] serde_json::Error),
 }
 
 impl ConnectionFile {
