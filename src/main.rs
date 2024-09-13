@@ -111,7 +111,7 @@ impl Sockets {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> miette::Result<()> {
     let args = Cli::parse();
     match args.command {
         Command::Register { user, system } => {
@@ -121,12 +121,14 @@ async fn main() {
                 (true, false) => RegisterLocation::User,
                 (false, false) => RegisterLocation::User, // default case
             };
-            register_kernel(location);
+            let path = register_kernel(location)?;
+            println!("Registered kernel to {}", path.display());
         }
         Command::Start {
             connection_file_path,
         } => start_kernel(connection_file_path).await,
     }
+    Ok(())
 }
 
 async fn start_kernel(connection_file_path: impl AsRef<Path>) {

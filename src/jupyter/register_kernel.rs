@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
 use clap::ValueEnum;
+use miette::Diagnostic;
 use serde_json::json;
 use thiserror::Error;
 
@@ -11,7 +12,7 @@ pub enum RegisterLocation {
     System,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Diagnostic)]
 pub enum RegisterKernelError {
     #[error(transparent)]
     Io(#[from] io::Error),
@@ -28,9 +29,6 @@ pub fn register_kernel(location: RegisterLocation) -> Result<PathBuf, RegisterKe
     file_path.push("kernel.json");
     let manifest = serde_json::to_string_pretty(&kernel_manifest())?;
     fs::write(&file_path, manifest)?;
-
-    // TODO: move this message elsewhere
-    println!("Registered kernel to {}", path.display());
     Ok(file_path)
 }
 
