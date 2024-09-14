@@ -32,7 +32,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (${{ matrix.crates }})
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (check ${{ matrix.crates }})
       - run: cargo check -p ${{ matrix.crates }} 
 
   doc:
@@ -51,7 +51,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (doc)
       - run: cargo doc --workspace 
 
   integration-test:
@@ -68,7 +68,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (run nu-jupyter-kernel)
       - run: cargo run register --system
       - name: Read .python-version
         id: python-version
