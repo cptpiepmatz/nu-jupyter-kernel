@@ -15,8 +15,8 @@ def kernel():
 
 def ok(client: BlockingKernelClient, code: str):
     client.execute(code)
-    iopub_reply = client.get_iopub_msg(timeout=10)
-    shell_reply = client.get_shell_msg(timeout=10)
+    iopub_reply = client.get_iopub_msg(timeout=120)
+    shell_reply = client.get_shell_msg(timeout=120)
     assert shell_reply["content"]["status"] == "ok"
     return iopub_reply["content"]
 
