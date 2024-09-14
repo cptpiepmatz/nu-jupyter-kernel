@@ -54,6 +54,30 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (doc)
       - run: cargo doc --workspace 
 
+  unit-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        crates:
+          - nu_plugin_plotters
+          - nu-jupyter-kernel
+    env:
+      RUSTFLAGS: "-D warnings"
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (test ${{ matrix.crates }})
+      - run: cargo test -p ${{ matrix.crates }} 
+
   integration-test:
     runs-on: ubuntu-latest
     
