@@ -69,7 +69,7 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (run nu-jupyter-kernel)
-      - run: cargo run register --system
+      - run: cargo run register --user
       - name: Read .python-version
         id: python-version
         run: echo "python-version=$(cat .python-version)" >> $GITHUB_OUTPUT
