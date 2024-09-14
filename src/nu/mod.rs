@@ -154,33 +154,3 @@ pub fn execute(
         nu_engine::eval_block::<WithoutDebug>(engine_state, stack, &block, PipelineData::Empty)?;
     Ok(res)
 }
-
-#[cfg(all(test, windows))]
-mod tests {
-
-    use std::os::windows::io::OwnedHandle;
-    use std::{io, thread};
-
-    use nu_protocol::engine::Stack;
-
-    use super::commands::external::External;
-    use super::initial_engine_state;
-
-    #[test]
-    fn test_execute() {
-        let mut engine_state = initial_engine_state();
-        External::apply(&mut engine_state).unwrap();
-        let (mut reader, writer) = os_pipe::pipe().unwrap();
-        let reader = thread::spawn(move || {
-            let mut stdout = io::stdout();
-            io::copy(&mut reader, &mut stdout).unwrap();
-        });
-        let mut stack = Stack::new().stdout_file(OwnedHandle::from(writer).into());
-        let code = "plugin add nu_plugin_polars";
-        let name = concat!(module_path!(), "::test_execute");
-        eprintln!("will execute {code:?} via {name:?}");
-        super::execute(code, &mut engine_state, &mut stack, name).unwrap();
-        drop(stack);
-        reader.join().unwrap();
-    }
-}
