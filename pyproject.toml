@@ -1,0 +1,12 @@
+[project]
+name = "nu-jupyter-kernel-test"
+version = "0.0.0"
+description = "Tests for the nu-jupyter-kernel"
+requires-python = ">=3.12"
+dependencies = [
+    "jupyter-client>=8.6.2",
+    "pytest>=8.3.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

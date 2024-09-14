@@ -1,4 +1,7 @@
+/.vscode
 /target
 /examples/.ipynb_checkpoints
 /examples/.jupyter
 /examples/data
+/.venv
+__pycache__

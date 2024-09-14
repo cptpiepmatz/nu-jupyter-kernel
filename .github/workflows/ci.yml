@@ -53,3 +53,33 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - run: cargo doc --workspace 
+
+  integration-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: cargo run register
+      - name: Read .python-version
+        id: python-version
+        run: echo "python-version=$(cat .python-version)" >> $GITHUB_OUTPUT
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ steps.python-version.outputs.python-version }}
+      - uses: yezz123/setup-uv@v4
+      - run: uv sync
+      - uses: actions/cache@v4
+        with:
+          path: .venv/
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
+      - run: uv run pytest
