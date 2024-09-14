@@ -13,17 +13,33 @@ def kernel():
     km.shutdown_kernel()
 
 
-def ok(client: BlockingKernelClient, code: str):
+def ok(client: BlockingKernelClient, code: str) -> list[dict]:
+    # wait until client is ready, then send some code
+    client.wait_for_ready(timeout=120)
     client.execute(code)
-    iopub_reply = client.get_iopub_msg(timeout=120)
+
+    # kernel should instantly reply with busy message
+    busy_status = client.get_iopub_msg(timeout=120)
+    assert busy_status["content"]["execution_state"] == "busy"
+
+    # check on the iopub channel until we receive an idle message
+    contents = []
+    while True:
+        iopub_reply = client.get_iopub_msg(timeout=120)
+        if iopub_reply["content"].get("execution_state") == "idle": break
+        contents.append(iopub_reply["content"])
+
+    # we should get a ok on the shell channel
     shell_reply = client.get_shell_msg(timeout=120)
     assert shell_reply["content"]["status"] == "ok"
-    return iopub_reply["content"]
+
+    return contents
 
 
 def test_basic_rendering(kernel: BlockingKernelClient):
-    content = ok(kernel, "$nuju")
-    data = content["data"]
+    contents = ok(kernel, "$nuju")
+    assert len(contents) == 1
+    data = contents[0]["data"]
     assert "application/json" in data
     assert "text/plain" in data
     assert "text/html" in data
@@ -31,8 +47,9 @@ def test_basic_rendering(kernel: BlockingKernelClient):
 
 
 def test_nuju_content(kernel: BlockingKernelClient):
-    content = ok(kernel, "$nuju")
-    data = content["data"]
+    contents = ok(kernel, "$nuju")
+    assert len(contents) == 1
+    data = contents[0]["data"]
     nuju_constant = json.loads(data["application/json"])
     with open("Cargo.toml", "rb") as cargo_toml_file:
         cargo_toml = tomllib.load(cargo_toml_file)
