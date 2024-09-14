@@ -97,7 +97,7 @@ jobs:
       - name: Read .python-version
         id: python-version
         run: echo "python-version=$(cat .python-version)" >> $GITHUB_OUTPUT
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ steps.python-version.outputs.python-version }}
       - uses: yezz123/setup-uv@v4
