@@ -1,0 +1,35 @@
+name: continous-integration
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: stable
+      
+      - name: Check nu_plugin_plotters
+        run: cargo check -p nu_plugin_plotters 
+
+      - name: Check nu-jupyter-kernel
+        run: cargo check -p nu-jupyter-kernel
+
+      - name: Doc
+        run: cargo doc
