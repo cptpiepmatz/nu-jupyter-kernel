@@ -17,7 +17,7 @@ jobs:
       matrix:
         crates:
           - nu_plugin_plotters
-          - nu-jupyter-kernerl
+          - nu-jupyter-kernel
     env:
       RUSTFLAGS: "-D warnings"
 
