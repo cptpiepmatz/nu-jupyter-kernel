@@ -69,7 +69,7 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: cargo run register
+      - run: cargo run register --system
       - name: Read .python-version
         id: python-version
         run: echo "python-version=$(cat .python-version)" >> $GITHUB_OUTPUT
