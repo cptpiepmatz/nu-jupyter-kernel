@@ -15,7 +15,7 @@
     <img alt="Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=package.version&prefix=v&style=for-the-badge&label=version"/>
   </a>
   <a href="https://github.com/nushell/nushell">
-    <img alt="Nu Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=dependencies%5B'nu-engine'%5D.version&prefix=v&style=for-the-badge&label=nu%20version&color=%234E9A06"/>
+    <img alt="Nu Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=workspace.dependencies%5B'nu-engine'%5D.version&prefix=v&style=for-the-badge&label=nu%20version&color=%234E9A06"/>
   </a>
   <img alt="Jupyter Protocol Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=package.metadata.jupyter.protocol_version&prefix=v&style=for-the-badge&label=Jupyter%20Protocol%20Version&color=%23F37726"/>
   <a href="https://github.com/cptpiepmatz/nu-jupyter-kernel/blob/main/LICENSE">
@@ -133,6 +133,15 @@ Kernel binary updates do not require re-registration unless the binary's
 location changes. 
 For developers, keep in mind that running `cargo run register` and 
 `cargo run --release register` will result in different binary locations.
+
+## Version Scheme
+This crate follows the semantic versioning scheme as required by the
+[Rust documentation](https://doc.rust-lang.org/cargo/reference/semver.html).
+The version number is represented as `x.y.z+a.b.c`, where `x.y.z` is the version
+of the crate and `a.b.c` is the version of the `nu-engine` that this crate is 
+built with.
+The `+` symbol is used to separate the two version numbers.
+
 
 ## Contributing
 Contributions are welcome! 
