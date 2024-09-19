@@ -1,13 +1,12 @@
 [package]
 name = "nu-jupyter-kernel"
-version = "0.1.0-wip"
+version = "0.1.0+0.98.0"
 edition.workspace = true
 description = "A wip jupyter raw kernel for nu"
 repository.workspace = true
 license.workspace = true
 keywords = ["jupyter-kernel", "jupyter", "nushell"]
 categories = ["science"]
-publish = false
 
 [workspace.package]
 edition = "2021"
@@ -25,20 +24,20 @@ plotting = ["nu-plotters"]
 members = ["crates/nu_plugin_plotters"]
 
 [workspace.dependencies]
-nu-cmd-extra = "0.98"
-nu-cmd-lang = "0.98"
-nu-cmd-plugin = "0.98"
-nu-command = { version = "0.98", features = ["plugin"] }
-nu-engine = { version = "0.98"}
-nu-parser = { version = "0.98", features = ["plugin"] }
-nu-protocol = { version = "0.98", features = ["plugin"] }
-nu-plugin = "0.98"
-nuon = "0.98"
+nu-cmd-extra = "0.98.0"
+nu-cmd-lang = "0.98.0"
+nu-cmd-plugin = "0.98.0"
+nu-command = { version = "0.98.0", features = ["plugin"] }
+nu-engine = { version = "0.98.0"}
+nu-parser = { version = "0.98.0", features = ["plugin"] }
+nu-protocol = { version = "0.98.0", features = ["plugin"] }
+nu-plugin = "0.98.0"
+nuon = "0.98.0"
 
 # plotting
 [dependencies.nu-plotters]
 package = "nu_plugin_plotters"
-version = "0.1.0-wip"
+version = "0.1.0"
 path = "crates/nu_plugin_plotters"
 optional = true
 

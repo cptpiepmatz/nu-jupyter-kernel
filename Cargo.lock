@@ -2183,7 +2183,7 @@ dependencies = [
 
 [[package]]
 name = "nu-jupyter-kernel"
-version = "0.1.0-wip"
+version = "0.1.0+0.98.0"
 dependencies = [
  "atomic_enum",
  "bytes",
@@ -2416,7 +2416,7 @@ dependencies = [
 
 [[package]]
 name = "nu_plugin_plotters"
-version = "0.1.0-wip"
+version = "0.1.0+0.98.0"
 dependencies = [
  "icy_sixel",
  "indoc",

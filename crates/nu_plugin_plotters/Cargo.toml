@@ -1,10 +1,9 @@
 [package]
 name = "nu_plugin_plotters"
-version = "0.1.0-wip"
+version = "0.1.0+0.98.0"
 edition.workspace = true
 repository.workspace = true
 license.workspace = true
-publish = false
 
 [dependencies]
 # nu
