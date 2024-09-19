@@ -1,7 +1,7 @@
 <h1 align="center">nu-jupyter-kernel</h1>
 <p align="center">
   <b>
-    A wip 
+    A 
     <a href="https://jupyter.org">jupyter</a> 
     <a href=https://jupyter-client.readthedocs.io">raw kernel</a> 
     for <a href="https://www.nushell.sh">nu</a>.
@@ -70,6 +70,11 @@ Jupyter notebooks:
   The kernel directly integrates the `nu_plugin_plotters`, making plots easily 
   accessible.
 
+## Examples
+In the "examples" directory are some notebooks that show how the kernel works.
+Opening the examples on Github also shows a preview of them.
+
+
 ## Design Goals
 The design of the `nu-jupyter-kernel` focuses on the following goals:
 
@@ -136,3 +141,45 @@ by opening an issue or a pull request.
 If you'd like to discuss potential changes or get more involved, join the 
 Nushell community on Discord. 
 Invite links are available when you start Nushell or on their GitHub repository.
+
+## Testing
+For integration testing, this project uses a Python project set up with 
+[`uv`](https://github.com/astral-sh/uv).
+So make sure to have that installed.
+
+Then do the following to run tests:
+```sh
+# register the current kernel
+cargo run register
+
+# sync the python dependencies
+uv sync
+
+# run the tests
+uv run pytes
+```
+
+Tests are done via python as tools for executing Jupyter notebooks are currently 
+not available in Rust.
+
+
+This project uses [`uv`](https://github.com/astral-sh/uv) for integration 
+testing. 
+Since tools for executing Jupyter notebooks are not currently available in Rust, 
+the tests are handled via Python.
+
+To run the tests, follow these steps:
+1. **Register the kernel**:
+  ```nushell
+  cargo run register
+  ```
+2. **Sync Python dependencies:**
+  ```nushell
+  uv sync
+  ```
+3. **Run the tests:**
+  ```nushell
+  uv run pytest
+  ```
+
+Make sure `uv` is installed before running the commands.
