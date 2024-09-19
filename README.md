@@ -24,8 +24,8 @@
 </p>
 
 ## About
-`nu-jupyter-kernel` is a work-in-progress [Jupyter](https://jupyter.org) kernel
-specifically for executing Nu pipelines. 
+`nu-jupyter-kernel` is a [Jupyter](https://jupyter.org) kernel specifically for 
+executing Nu pipelines. 
 Unlike most Jupyter kernels that rely on Python, this raw kernel directly 
 implements the Jupyter messaging protocol, allowing direct communication without 
 Python intermediaries. 
@@ -36,8 +36,8 @@ a modern shell that emphasizes structured data.
 ![screenshot](media/screenshot.png)
 
 ## Features
-The `nu-jupyter-kernel` already has several features making it a useful kernel 
-for Jupyter notebooks:
+The `nu-jupyter-kernel` has several features making it a useful kernel for 
+Jupyter notebooks:
 
 - **Execution of Nu code:** 
   Directly run Nu pipeplines within your Jupyter notebook.
@@ -66,6 +66,10 @@ for Jupyter notebooks:
   Supports Nushell plugins within notebooks, allowing them to be loaded and 
   utilized as in a typical Nushell environment.
 
+- **Plotting Integration:**
+  The kernel directly integrates the `nu_plugin_plotters`, making plots easily 
+  accessible.
+
 ## Design Goals
 The design of the `nu-jupyter-kernel` focuses on the following goals:
 
@@ -83,28 +87,13 @@ The design of the `nu-jupyter-kernel` focuses on the following goals:
   script capabilities to avoid confusion during notebook executions.
 
 ## Installation
-Currently, installing the `nu-jupyter-kernel` requires building the kernel from 
-source.
-Future versions will provide simpler installation methods, but for now, please 
-follow the instructions in the Building section below.
+To build the kernel you need to have the rust toolchain installed, check the 
+[installation guide on rust's official website](https://www.rust-lang.org/tools/install).
 
-## Building
-To build the latest kernel, you need to have the nushell repository cloned next 
-to the kernel repository:
-
-```sh
-# Clone the repositories
-git clone https://github.com/cptpiepmatz/nu-jupyter-kernel.git
-git clone https://github.com/nushell/nushell.git
-
-# Change directory
-cd nu-jupyter-kernel
-
-# Build the kernel
-cargo build
-```
-
-To build the kernel you need to have the rust toolchain installed, check the [installation guide on rust's official website](https://www.rust-lang.org/tools/install).
+Using `cargo install nu-jupyter-kernel` you can install the latest release of 
+the kernel.
+If you want to install the latest version on the git repo, you can install the 
+kernel via `cargo install nu-jupyter-kernel --git https://github.com/cptpiepmatz/nu-jupyter-kernel.git`
 
 ## Usage
 ### Registering the Kernel
@@ -113,7 +102,7 @@ Jupyter environments.
 This can be done through the command:
 
 ```sh
-./target/debug/nu-jupyter-kernel register
+nu-jupyter-kernel register
 ```
 
 You can specify the registration scope using `--user` for the current user 
