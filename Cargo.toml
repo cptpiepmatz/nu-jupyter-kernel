@@ -2,7 +2,7 @@
 name = "nu-jupyter-kernel"
 version = "0.1.0+0.98.0"
 edition.workspace = true
-description = "A wip jupyter raw kernel for nu"
+description = "A jupyter raw kernel for nu"
 repository.workspace = true
 license.workspace = true
 keywords = ["jupyter-kernel", "jupyter", "nushell"]
