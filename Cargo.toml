@@ -47,7 +47,7 @@ nu-cmd-extra.workspace = true
 nu-cmd-lang.workspace = true
 nu-cmd-plugin.workspace = true
 nu-command.workspace = true
-nu-engine.workspace = true
+nu-engine.version = "0.98.0" # cannot publish if this inherits from workspace
 nu-parser.workspace = true
 nu-protocol.workspace = true
 

@@ -35,7 +35,7 @@ static_toml::static_toml! {
 #[command(version, long_version = formatcp!(
     "{}\nnu-engine {}",
     CARGO_TOML.package.version,
-    CARGO_TOML.workspace.dependencies.nu_engine.version
+    CARGO_TOML.dependencies.nu_engine.version
 ))]
 struct Cli {
     #[command(subcommand)]

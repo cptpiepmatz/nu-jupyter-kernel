@@ -54,7 +54,6 @@ impl KernelInfo {
             language_info: LanguageInfo {
                 name: "nushell".to_owned(),
                 version: CARGO_TOML
-                    .workspace
                     .dependencies
                     .nu_engine
                     .version

@@ -34,7 +34,6 @@ impl Konst {
             version: KonstDataVersion {
                 kernel: CARGO_TOML.package.version.to_owned(),
                 nu: CARGO_TOML
-                    .workspace
                     .dependencies
                     .nu_engine
                     .version
