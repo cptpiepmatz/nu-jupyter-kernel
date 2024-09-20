@@ -152,26 +152,6 @@ Nushell community on Discord.
 Invite links are available when you start Nushell or on their GitHub repository.
 
 ## Testing
-For integration testing, this project uses a Python project set up with 
-[`uv`](https://github.com/astral-sh/uv).
-So make sure to have that installed.
-
-Then do the following to run tests:
-```sh
-# register the current kernel
-cargo run register
-
-# sync the python dependencies
-uv sync
-
-# run the tests
-uv run pytes
-```
-
-Tests are done via python as tools for executing Jupyter notebooks are currently 
-not available in Rust.
-
-
 This project uses [`uv`](https://github.com/astral-sh/uv) for integration 
 testing. 
 Since tools for executing Jupyter notebooks are not currently available in Rust, 
