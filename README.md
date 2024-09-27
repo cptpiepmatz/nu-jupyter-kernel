@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/cptpiepmatz/nu-jupyter-kernel">
-    <img alt="Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=package.version&prefix=v&style=for-the-badge&label=version"/>
+    <img alt="crates.io Version" src="https://img.shields.io/crates/v/nu-jupyter-kernel?style=for-the-badge"/>
   </a>
   <a href="https://github.com/nushell/nushell">
     <img alt="Nu Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=workspace.dependencies%5B'nu-engine'%5D.version&prefix=v&style=for-the-badge&label=nu%20version&color=%234E9A06"/>
