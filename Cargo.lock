@@ -2183,7 +2183,7 @@ dependencies = [
 
 [[package]]
 name = "nu-jupyter-kernel"
-version = "0.1.0+0.98.0"
+version = "0.1.1+0.98.0"
 dependencies = [
  "atomic_enum",
  "bytes",
