@@ -1,6 +1,7 @@
 use mime_guess::MimeGuess;
+use nu_engine::CallExt;
 use nu_protocol::engine::Command;
-use nu_protocol::{Example, ShellError, Signature, SyntaxShape, Type};
+use nu_protocol::{Example, ShellError, Signature, Spanned, SyntaxShape, Type};
 
 use super::COMMANDS_TOML;
 use crate::handlers::shell::RENDER_FILTER;
@@ -52,26 +53,14 @@ impl Command for Display {
         call: &nu_protocol::engine::Call,
         input: nu_protocol::PipelineData,
     ) -> Result<nu_protocol::PipelineData, ShellError> {
-        let format_expr =
-            call.positional_nth(stack, 0)
-                .ok_or_else(|| ShellError::MissingParameter {
-                    param_name: String::from("format"),
-                    span: call.arguments_span(),
-                })?;
-
-        let format = format_expr
-            .as_string()
-            .ok_or_else(|| ShellError::TypeMismatch {
-                err_message: "<format> needs to be a string".to_owned(),
-                span: format_expr.span,
-            })?;
+        let format: Spanned<String> = call.req(engine_state, stack, 0)?;
 
         let mime =
-            MimeGuess::from_ext(&format)
+            MimeGuess::from_ext(&format.item)
                 .first()
                 .ok_or_else(|| ShellError::IncorrectValue {
                     msg: "cannot guess a mime type".to_owned(),
-                    val_span: format_expr.span,
+                    val_span: format.span,
                     call_span: call.head,
                 })?;
 
