@@ -11,7 +11,7 @@
 <br>
 
 <p align="center">
-  <a href="https://github.com/cptpiepmatz/nu-jupyter-kernel">
+  <a href="https://crates.io/crates/nu-jupyter-kernel">
     <img alt="crates.io Version" src="https://img.shields.io/crates/v/nu-jupyter-kernel?style=for-the-badge"/>
   </a>
   <a href="https://github.com/nushell/nushell">
