@@ -216,6 +216,10 @@ async fn handle_execute_error(
             working_set.delta = delta;
             error as &(dyn miette::Diagnostic + Send + Sync + 'static)
         }
+        nu::ExecuteError::Compile { ref error, delta } => {
+            working_set.delta = delta;
+            error as &(dyn miette::Diagnostic + Send + Sync + 'static)
+        }
         nu::ExecuteError::Shell(ref error) => {
             error as &(dyn miette::Diagnostic + Send + Sync + 'static)
         }

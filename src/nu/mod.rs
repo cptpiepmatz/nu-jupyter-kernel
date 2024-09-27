@@ -7,7 +7,9 @@ use std::sync::Arc;
 
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{EngineState, Stack, StateDelta, StateWorkingSet};
-use nu_protocol::{ParseError, PipelineData, ShellError, Signals, Span, Value, NU_VARIABLE_ID};
+use nu_protocol::{
+    CompileError, ParseError, PipelineData, ShellError, Signals, Span, Value, NU_VARIABLE_ID,
+};
 use thiserror::Error;
 
 pub mod commands;
@@ -115,6 +117,17 @@ pub enum ExecuteError {
         delta: StateDelta,
     },
 
+    #[error("{error}")]
+    Compile {
+        #[source]
+        error: CompileError,
+        /// Delta of the working set.
+        ///
+        /// By keeping this delta around we later can update another working
+        /// set with and with that correctly source the parsing issues.
+        delta: StateDelta,
+    },
+
     #[error(transparent)]
     Shell(#[from] ShellError),
 }
@@ -124,6 +137,11 @@ impl Debug for ExecuteError {
         match self {
             Self::Parse { error, delta } => f
                 .debug_struct("Parse")
+                .field("error", error)
+                .field("delta", &format_args!("[StateDelta]"))
+                .finish(),
+            Self::Compile { error, delta } => f
+                .debug_struct("Compile")
                 .field("error", error)
                 .field("delta", &format_args!("[StateDelta]"))
                 .finish(),
@@ -142,8 +160,17 @@ pub fn execute(
     let mut working_set = StateWorkingSet::new(engine_state);
     let block = nu_parser::parse(&mut working_set, Some(name), code, false);
 
+    // TODO: report parse warnings
+
     if let Some(error) = working_set.parse_errors.into_iter().next() {
         return Err(ExecuteError::Parse {
+            error,
+            delta: working_set.delta,
+        });
+    }
+
+    if let Some(error) = working_set.compile_errors.into_iter().next() {
+        return Err(ExecuteError::Compile {
             error,
             delta: working_set.delta,
         });
