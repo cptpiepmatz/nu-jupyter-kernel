@@ -33,11 +33,7 @@ impl Konst {
         let data = KonstData {
             version: KonstDataVersion {
                 kernel: CARGO_TOML.package.version.to_owned(),
-                nu: CARGO_TOML
-                    .dependencies
-                    .nu_engine
-                    .version
-                    .to_owned(),
+                nu: CARGO_TOML.dependencies.nu_engine.version.to_owned(),
             },
             cell: cell_name,
             message: KonstDataMessage {

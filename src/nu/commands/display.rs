@@ -55,14 +55,13 @@ impl Command for Display {
     ) -> Result<nu_protocol::PipelineData, ShellError> {
         let format: Spanned<String> = call.req(engine_state, stack, 0)?;
 
-        let mime =
-            MimeGuess::from_ext(&format.item)
-                .first()
-                .ok_or_else(|| ShellError::IncorrectValue {
-                    msg: "cannot guess a mime type".to_owned(),
-                    val_span: format.span,
-                    call_span: call.head,
-                })?;
+        let mime = MimeGuess::from_ext(&format.item).first().ok_or_else(|| {
+            ShellError::IncorrectValue {
+                msg: "cannot guess a mime type".to_owned(),
+                val_span: format.span,
+                call_span: call.head,
+            }
+        })?;
 
         RENDER_FILTER.lock().replace(mime);
         Ok(input)

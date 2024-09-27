@@ -53,11 +53,7 @@ impl KernelInfo {
             implementation_version: CARGO_TOML.package.version.to_owned(),
             language_info: LanguageInfo {
                 name: "nushell".to_owned(),
-                version: CARGO_TOML
-                    .dependencies
-                    .nu_engine
-                    .version
-                    .to_owned(),
+                version: CARGO_TOML.dependencies.nu_engine.version.to_owned(),
                 mimetype: "text/x-nushell".to_owned(),
                 file_extension: ".nu".to_owned(),
             },
