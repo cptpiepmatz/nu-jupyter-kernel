@@ -24,15 +24,15 @@ plotting = ["nu-plotters"]
 members = ["crates/nu_plugin_plotters"]
 
 [workspace.dependencies]
-nu-cmd-extra = "0.98.0"
-nu-cmd-lang = "0.98.0"
-nu-cmd-plugin = "0.98.0"
-nu-command = { version = "0.98.0", features = ["plugin"] }
-nu-engine = { version = "0.98.0"}
-nu-parser = { version = "0.98.0", features = ["plugin"] }
-nu-protocol = { version = "0.98.0", features = ["plugin"] }
-nu-plugin = "0.98.0"
-nuon = "0.98.0"
+nu-cmd-extra = "0.99.0"
+nu-cmd-lang = "0.99.0"
+nu-cmd-plugin = "0.99.0"
+nu-command = { version = "0.99.0", features = ["plugin"] }
+nu-engine = { version = "0.99.0"}
+nu-parser = { version = "0.99.0", features = ["plugin"] }
+nu-protocol = { version = "0.99.0", features = ["plugin"] }
+nu-plugin = "0.99.0"
+nuon = "0.99.0"
 
 # plotting
 [dependencies.nu-plotters]
@@ -47,7 +47,7 @@ nu-cmd-extra.workspace = true
 nu-cmd-lang.workspace = true
 nu-cmd-plugin.workspace = true
 nu-command.workspace = true
-nu-engine.version = "0.98.0" # cannot publish if this inherits from workspace
+nu-engine.version = "0.99.0" # cannot publish if this inherits from workspace
 nu-parser.workspace = true
 nu-protocol.workspace = true
 

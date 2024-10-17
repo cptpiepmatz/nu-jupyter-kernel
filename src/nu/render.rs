@@ -6,7 +6,7 @@ use nu_plotters::commands::draw::DrawSvg;
 use nu_protocol::ast::{Argument, Call};
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{Command, EngineState, Stack};
-use nu_protocol::{PipelineData, ShellError, Span, Spanned, Value};
+use nu_protocol::{DeclId, PipelineData, ShellError, Span, Spanned, Value};
 use thiserror::Error;
 
 use crate::error::KernelError;
@@ -15,7 +15,7 @@ macro_rules! create_format_decl_ids {
     ($($field:ident : $search_str:expr),+ $(,)?) => {
         #[derive(Debug, Clone, Copy)]
         pub struct FormatDeclIds {
-            $(pub $field: usize,)+
+            $(pub $field: DeclId,)+
         }
 
         impl FormatDeclIds {
@@ -92,7 +92,7 @@ impl PipelineRender {
     fn render_via_cmd(
         value: &Value,
         to_cmd: impl Command,
-        decl_id: usize,
+        decl_id: DeclId,
         engine_state: &EngineState,
         stack: &mut Stack,
     ) -> Result<Option<String>, InternalRenderError> {
@@ -113,7 +113,7 @@ impl PipelineRender {
 
     fn render_via_call(
         value: Value,
-        decl_id: usize,
+        decl_id: DeclId,
         engine_state: &EngineState,
         stack: &mut Stack,
         arguments: Vec<Argument>,

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use mime::Mime;
-use nu_protocol::cli_error::CliError;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::PipelineData;
 use parking_lot::Mutex;
@@ -21,7 +20,7 @@ use crate::jupyter::Shutdown;
 use crate::nu::commands::external::External;
 use crate::nu::konst::Konst;
 use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender};
-use crate::nu::{self, ExecuteError};
+use crate::nu::{self, ExecuteError, ReportExecuteError};
 use crate::util::Select;
 use crate::ShellSocket;
 
@@ -211,25 +210,13 @@ async fn handle_execute_error(
     error: ExecuteError,
 ) {
     let mut working_set = StateWorkingSet::new(&ctx.engine_state);
-    let report = match error {
-        nu::ExecuteError::Parse { ref error, delta } => {
-            working_set.delta = delta;
-            error as &(dyn miette::Diagnostic + Send + Sync + 'static)
-        }
-        nu::ExecuteError::Compile { ref error, delta } => {
-            working_set.delta = delta;
-            error as &(dyn miette::Diagnostic + Send + Sync + 'static)
-        }
-        nu::ExecuteError::Shell(ref error) => {
-            error as &(dyn miette::Diagnostic + Send + Sync + 'static)
-        }
+    let (name, value) = {
+        // keeping the report makes the following part not Send
+        let report = ReportExecuteError::new(error, &mut working_set);
+        let name = report.code().to_string();
+        let value = report.to_string();
+        (name, value)
     };
-
-    let name = report
-        .code()
-        .unwrap_or_else(|| Box::new(format_args!("nu-jupyter-kernel::unknown-error")))
-        .to_string();
-    let value = format!("Error: {:?}", CliError(report, &working_set));
     // TODO: for traceback use error source
     let traceback = vec![];
 
