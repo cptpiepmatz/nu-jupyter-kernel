@@ -214,7 +214,7 @@ async fn handle_execute_error(
         // keeping the report makes the following part not Send
         let report = ReportExecuteError::new(error, &mut working_set);
         let name = report.code().to_string();
-        let value = report.to_string();
+        let value = report.fmt();
         (name, value)
     };
     // TODO: for traceback use error source

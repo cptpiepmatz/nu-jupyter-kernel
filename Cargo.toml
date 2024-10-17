@@ -1,6 +1,6 @@
 [package]
 name = "nu-jupyter-kernel"
-version = "0.1.3+0.99.0"
+version = "0.1.4+0.99.0"
 edition.workspace = true
 description = "A jupyter raw kernel for nu"
 repository.workspace = true

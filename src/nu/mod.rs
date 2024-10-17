@@ -183,7 +183,7 @@ impl Debug for ExecuteError {
 }
 
 #[derive(Error)]
-#[error("Error: {diagnostic}")]
+#[error("{diagnostic}")]
 pub struct ReportExecuteError<'s> {
     diagnostic: Box<dyn miette::Diagnostic>,
     working_set: &'s StateWorkingSet<'s>,
@@ -244,6 +244,10 @@ impl<'s> ReportExecuteError<'s> {
     pub fn code<'a>(&'a self) -> Box<dyn std::fmt::Display + 'a> {
         miette::Diagnostic::code(self)
             .unwrap_or_else(|| Box::new(format_args!("nu-jupyter-kernel::unknown-error")))
+    }
+
+    pub fn fmt(&self) -> String {
+        format!("Error: {:?}", self)
     }
 }
 
