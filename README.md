@@ -10,18 +10,15 @@
 
 <br>
 
-<p align="center">
-  <a href="https://crates.io/crates/nu-jupyter-kernel">
-    <img alt="crates.io Version" src="https://img.shields.io/crates/v/nu-jupyter-kernel?style=for-the-badge"/>
-  </a>
-  <a href="https://github.com/nushell/nushell">
-    <img alt="Nu Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=workspace.dependencies%5B'nu-engine'%5D.version&prefix=v&style=for-the-badge&label=nu%20version&color=%234E9A06"/>
-  </a>
-  <img alt="Jupyter Protocol Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=package.metadata.jupyter.protocol_version&prefix=v&style=for-the-badge&label=Jupyter%20Protocol%20Version&color=%23F37726"/>
-  <a href="https://github.com/cptpiepmatz/nu-jupyter-kernel/blob/main/LICENSE">
-    <img alt="License" src="https://img.shields.io/github/license/cptpiepmatz/nu-jupyter-kernel?style=for-the-badge"/>  
-  </a>
-</p>
+<div align="center">
+
+  [![crates.io Version](https://img.shields.io/crates/v/nu-jupyter-kernel?style=for-the-badge)](https://crates.io/crates/nu-jupyter-kernel)
+  [![Nu Version](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=workspace.dependencies%5B'nu-engine'%5D.version&prefix=v&style=for-the-badge&label=Nu%20Version&color=%234E9A06)](https://github.com/nushell/nushell)
+  ![Jupyter Protocol Version](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=package.metadata.jupyter.protocol_version&prefix=v&style=for-the-badge&label=Jupyter%20Protocol%20Version&color=%23F37726)
+  [![License](https://img.shields.io/github/license/cptpiepmatz/nu-jupyter-kernel?style=for-the-badge)](https://github.com/cptpiepmatz/nu-jupyter-kernel/blob/main/LICENSE)
+
+</div>
+
 
 ## About
 `nu-jupyter-kernel` is a [Jupyter](https://jupyter.org) kernel specifically for 
