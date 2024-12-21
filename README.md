@@ -92,10 +92,10 @@ The design of the `nu-jupyter-kernel` focuses on the following goals:
 To build the kernel you need to have the rust toolchain installed, check the 
 [installation guide on rust's official website](https://www.rust-lang.org/tools/install).
 
-Using `cargo install nu-jupyter-kernel` you can install the latest release of 
+Using `cargo install --locked nu-jupyter-kernel` you can install the latest release of 
 the kernel.
 If you want to install the latest version on the git repo, you can install the 
-kernel via `cargo install nu-jupyter-kernel --git https://github.com/cptpiepmatz/nu-jupyter-kernel.git`
+kernel via `cargo install --locked nu-jupyter-kernel --git https://github.com/cptpiepmatz/nu-jupyter-kernel.git`
 
 ## Usage
 ### Registering the Kernel
