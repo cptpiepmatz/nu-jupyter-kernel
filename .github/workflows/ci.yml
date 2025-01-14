@@ -2,97 +2,46 @@ name: continous-integration
 
 on:
   push:
-    branches:
-      - main
-      - dev
-  pull_request:
-    branches:
-      - main
-      - dev
+    
+env:
+  RUSTFLAGS: "-D warnings"
 
 jobs:
-  check:
+  cargo:
+    name: cargo ${{ matrix.job.name }} (${{ matrix.crate }})
+
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        crates:
+        crate:
           - nu_plugin_plotters
           - nu-jupyter-kernel
-    env:
-      RUSTFLAGS: "-D warnings"
-
-    steps:
-      - uses: actions/checkout@v4
-      - run: rustup update
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (check ${{ matrix.crates }})
-      - run: cargo check -p ${{ matrix.crates }} 
-
-  doc:
-    runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-D warnings"
+        job:
+          - name: check
+            command: cargo check
+          - name: build
+            command: cargo build
+          - name: doc
+            command: cargo doc
+          - name: test
+            command: cargo test
     
     steps:
       - uses: actions/checkout@v4
-      - run: rustup update
-      - uses: actions/cache@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (doc)
-      - run: cargo doc --workspace 
-
-  unit-test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        crates:
-          - nu_plugin_plotters
-          - nu-jupyter-kernel
-    env:
-      RUSTFLAGS: "-D warnings"
-
-    steps:
-      - uses: actions/checkout@v4
-      - run: rustup update
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (test ${{ matrix.crates }})
-      - run: cargo test -p ${{ matrix.crates }} 
+          rustflags: $RUSTFLAGS
+      - run: ${{ matrix.job.command }} -p ${{ matrix.crate }}
 
   integration-test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
-      - run: rustup update
-      - uses: actions/cache@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }} (run nu-jupyter-kernel)
+          rustflags: $RUSTFLAGS
       - run: cargo run register --user
       - name: Read .python-version
         id: python-version
