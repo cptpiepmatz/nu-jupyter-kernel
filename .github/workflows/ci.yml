@@ -2,6 +2,7 @@ name: continuous-integration
 
 on:
   push:
+  pull_request:
     
 env:
   RUSTFLAGS: "-D warnings"
@@ -29,9 +30,9 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - uses: tecolicom/actions-use-apt-tools@v1
+      - uses: ConorMacBride/install-package@v1
         with:
-          tools: libfontconfig1-dev
+          apt: libfontconfig1-dev
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           rustflags: $RUSTFLAGS
@@ -42,9 +43,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: tecolicom/actions-use-apt-tools@v1
+      - uses: ConorMacBride/install-package@v1
         with:
-          tools: libfontconfig1-dev
+          apt: libfontconfig1-dev
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           rustflags: $RUSTFLAGS
