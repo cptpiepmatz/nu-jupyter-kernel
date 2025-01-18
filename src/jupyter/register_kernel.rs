@@ -49,7 +49,7 @@ fn kernel_path(location: RegisterLocation) -> impl AsRef<Path> {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     match location {
         RegisterLocation::User => {
             path.push(dirs::home_dir().expect("defined on linux"));
@@ -67,11 +67,12 @@ fn kernel_path(location: RegisterLocation) -> impl AsRef<Path> {
         RegisterLocation::System => path.push("/usr/local/share/jupyter/kernels"),
     }
 
-    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
-    panic!(
-        "Your target os ({}) doesn't support `register`",
-        env::consts::OS
-    );
+    if path.to_string_lossy() == "" {
+        panic!(
+            "Your target os ({}) doesn't support `register`",
+            env::consts::OS
+        );
+    }
 
     path.push("nu");
 
