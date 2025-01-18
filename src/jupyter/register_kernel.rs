@@ -49,16 +49,7 @@ fn kernel_path(location: RegisterLocation) -> impl AsRef<Path> {
         }
     }
 
-    #[cfg(target_os = "android")]
-    match location {
-        RegisterLocation::User => {
-            path.push(dirs::home_dir().expect("defined on android"));
-            path.push(".local/share/jupyter/kernels")
-        }
-        RegisterLocation::System => unreachable!("System not available in Android"),
-    }
-
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     match location {
         RegisterLocation::User => {
             path.push(dirs::home_dir().expect("defined on linux"));
