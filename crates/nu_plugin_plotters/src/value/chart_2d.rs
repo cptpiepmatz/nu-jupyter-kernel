@@ -18,6 +18,8 @@ pub struct Chart2d {
     pub label_area: [u32; 4],
     pub x_range: Option<Range>,
     pub y_range: Option<Range>,
+    pub x_mesh: bool,
+    pub y_mesh: bool,
 }
 
 impl Default for Chart2d {
@@ -32,6 +34,8 @@ impl Default for Chart2d {
             label_area: [0, 0, 35, 35],
             x_range: None,
             y_range: None,
+            x_mesh: true,
+            y_mesh: true,
         }
     }
 }

@@ -67,6 +67,17 @@ impl Command for Chart2d {
             )
             .named("x-range", SyntaxShape::Range, "Set the x range.", Some('x'))
             .named("y-range", SyntaxShape::Range, "Set the y range.", Some('y'))
+            .switch("disable-mesh", "Disable the background mesh grid.", None)
+            .switch(
+                "disable-x-mesh",
+                "Disable the background mesh for the x axis.",
+                None,
+            )
+            .switch(
+                "disable-y-mesh",
+                "Disable the background mesh for the y axis.",
+                None,
+            )
             .input_output_type(Type::Nothing, value::Chart2d::ty())
             .input_output_type(value::Series2d::ty(), value::Chart2d::ty())
             .input_output_type(Type::list(value::Series2d::ty()), value::Chart2d::ty())
@@ -104,6 +115,9 @@ impl Command for Chart2d {
         let label_area = call.get_flag(engine_state, stack, "label-area")?;
         let x_range = call.get_flag(engine_state, stack, "x-range")?;
         let y_range = call.get_flag(engine_state, stack, "y-range")?;
+        let disable_mesh = call.get_flag(engine_state, stack, "disable-mesh")?;
+        let disable_x_mesh = call.get_flag(engine_state, stack, "disable-x-mesh")?;
+        let disable_y_mesh = call.get_flag(engine_state, stack, "disable-y-mesh")?;
         Chart2d::run(self, input, extend, Chart2dOptions {
             width,
             height,
@@ -113,6 +127,9 @@ impl Command for Chart2d {
             label_area,
             x_range,
             y_range,
+            disable_mesh,
+            disable_x_mesh,
+            disable_y_mesh,
         })
         .map(|v| PipelineData::Value(v, None))
     }
@@ -170,6 +187,13 @@ impl SimplePluginCommand for Chart2d {
                 T::from_value(value)
             }
 
+            fn extract_flag(value: Option<Value>) -> Result<Option<bool>, ShellError> {
+                Ok(Some(match value {
+                    None => true,
+                    Some(value) => bool::from_value(value)?,
+                }))
+            }
+
             match name.item.as_str() {
                 "width" => options.width = extract_named("width", value, name.span)?,
                 "height" => options.height = extract_named("height", value, name.span)?,
@@ -179,6 +203,9 @@ impl SimplePluginCommand for Chart2d {
                 "label-area" => options.label_area = extract_named("label-area", value, name.span)?,
                 "x-range" => options.x_range = extract_named("x-range", value, name.span)?,
                 "y-range" => options.y_range = extract_named("y-range", value, name.span)?,
+                "disable-mesh" => options.disable_mesh = extract_flag(value)?,
+                "disable-x-mesh" => options.disable_x_mesh = extract_flag(value)?,
+                "disable-y-mesh" => options.disable_y_mesh = extract_flag(value)?,
                 _ => continue,
             }
         }
@@ -197,6 +224,9 @@ struct Chart2dOptions {
     pub label_area: Option<Vec<u32>>,
     pub x_range: Option<value::Range>,
     pub y_range: Option<value::Range>,
+    pub disable_mesh: Option<bool>,
+    pub disable_x_mesh: Option<bool>,
+    pub disable_y_mesh: Option<bool>,
 }
 
 impl Chart2d {
@@ -214,6 +244,9 @@ impl Chart2d {
             label_area,
             x_range,
             y_range,
+            disable_mesh,
+            disable_x_mesh,
+            disable_y_mesh,
         }: Chart2dOptions,
     ) -> Result<Value, ShellError> {
         let span = input.span();
@@ -239,6 +272,8 @@ impl Chart2d {
             .unwrap_or(chart.label_area);
         chart.x_range = x_range.or(chart.x_range);
         chart.y_range = y_range.or(chart.y_range);
+        chart.x_mesh = !(disable_mesh.unwrap_or(false) || disable_x_mesh.unwrap_or(false));
+        chart.y_mesh = !(disable_mesh.unwrap_or(false) || disable_y_mesh.unwrap_or(false));
 
         Ok(Value::custom(Box::new(chart), span))
     }

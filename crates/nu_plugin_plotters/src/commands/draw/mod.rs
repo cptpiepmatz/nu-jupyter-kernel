@@ -59,7 +59,15 @@ fn draw<DB: DrawingBackend>(chart: value::Chart2d, drawing_area: DrawingArea<DB,
 
     let mut chart_context = chart_builder.build_cartesian_2d(x_range, y_range).unwrap();
 
-    chart_context.configure_mesh().draw().unwrap();
+    let mut mesh = chart_context.configure_mesh();
+    if !chart.x_mesh {
+        mesh.disable_x_mesh();
+    };
+    if !chart.y_mesh {
+        mesh.disable_y_mesh();
+    };
+    mesh.draw().unwrap();
+
     for series in chart.series {
         match series {
             value::Series2d::Line(series) => draw_line(&mut chart_context, series),
