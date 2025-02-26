@@ -9,6 +9,7 @@ use nu_protocol::engine::{Command, EngineState, Stack};
 use nu_protocol::{DeclId, PipelineData, ShellError, Span, Spanned, Value};
 use thiserror::Error;
 
+use super::module::KernelInternalSpans;
 use crate::error::KernelError;
 
 macro_rules! create_format_decl_ids {
@@ -55,11 +56,11 @@ create_format_decl_ids!(
     draw_svg: "draw svg"
 );
 
-fn flag(flag: impl Into<String>) -> Argument {
+fn flag(flag: impl Into<String>, span: Span) -> Argument {
     Argument::Named((
         Spanned {
             item: flag.into(),
-            span: Span::unknown(),
+            span,
         },
         None,
         None,
@@ -94,6 +95,7 @@ impl PipelineRender {
         to_cmd: impl Command,
         decl_id: DeclId,
         engine_state: &EngineState,
+        span: Span,
         stack: &mut Stack,
     ) -> Result<Option<String>, InternalRenderError> {
         let ty = value.get_type();
@@ -106,8 +108,10 @@ impl PipelineRender {
 
         match may {
             false => Ok(None),
-            true => Self::render_via_call(value.clone(), decl_id, engine_state, stack, vec![])
-                .map(Option::Some),
+            true => {
+                Self::render_via_call(value.clone(), decl_id, engine_state, stack, span, vec![])
+                    .map(Option::Some)
+            }
         }
     }
 
@@ -116,12 +120,13 @@ impl PipelineRender {
         decl_id: DeclId,
         engine_state: &EngineState,
         stack: &mut Stack,
+        span: Span,
         arguments: Vec<Argument>,
     ) -> Result<String, InternalRenderError> {
         let pipeline_data = PipelineData::Value(value, None);
         let call = Call {
             decl_id,
-            head: Span::unknown(),
+            head: span,
             arguments,
             parser_info: HashMap::new(),
         };
@@ -140,6 +145,7 @@ impl PipelineRender {
         pipeline_data: PipelineData,
         engine_state: &EngineState,
         stack: &mut Stack,
+        spans: &KernelInternalSpans,
         format_decl_ids: FormatDeclIds,
         filter: Option<Mime>,
     ) -> Result<PipelineRender, RenderError> {
@@ -157,6 +163,7 @@ impl PipelineRender {
             format_decl_ids.to_text,
             engine_state,
             stack,
+            spans.render.text,
             vec![],
         ) {
             Ok(s) => data.insert(mime::TEXT_PLAIN, s),
@@ -171,12 +178,14 @@ impl PipelineRender {
 
         // call directly as `ToHtml` is private
         if match_filter(mime::TEXT_HTML) {
+            let span = spans.render.html;
             match Self::render_via_call(
                 value.clone(),
                 format_decl_ids.to_html,
                 engine_state,
                 stack,
-                vec![flag("partial"), flag("html-color")],
+                span,
+                vec![flag("partial", span), flag("html-color", span)],
             ) {
                 Ok(s) => data.insert(mime::TEXT_HTML, s),
                 Err(InternalRenderError::Eval(_)) => None,
@@ -185,7 +194,14 @@ impl PipelineRender {
         }
 
         if match_filter(mime::TEXT_CSV) {
-            match Self::render_via_cmd(&value, ToCsv, format_decl_ids.to_csv, engine_state, stack) {
+            match Self::render_via_cmd(
+                &value,
+                ToCsv,
+                format_decl_ids.to_csv,
+                engine_state,
+                spans.render.csv,
+                stack,
+            ) {
                 Ok(Some(s)) => data.insert(mime::TEXT_CSV, s),
                 Ok(None) | Err(InternalRenderError::Eval(_)) => None,
                 Err(_) => None, // TODO: print the error
@@ -193,8 +209,14 @@ impl PipelineRender {
         }
 
         if match_filter(mime::APPLICATION_JSON) {
-            match Self::render_via_cmd(&value, ToJson, format_decl_ids.to_json, engine_state, stack)
-            {
+            match Self::render_via_cmd(
+                &value,
+                ToJson,
+                format_decl_ids.to_json,
+                engine_state,
+                spans.render.json,
+                stack,
+            ) {
                 Ok(Some(s)) => data.insert(mime::APPLICATION_JSON, s),
                 Ok(None) | Err(InternalRenderError::Eval(_)) => None,
                 Err(_) => None, // TODO: print the error
@@ -205,7 +227,14 @@ impl PipelineRender {
             .parse()
             .expect("'text/markdown' is valid mime type");
         if match_filter(md_mime.clone()) {
-            match Self::render_via_cmd(&value, ToMd, format_decl_ids.to_md, engine_state, stack) {
+            match Self::render_via_cmd(
+                &value,
+                ToMd,
+                format_decl_ids.to_md,
+                engine_state,
+                spans.render.md,
+                stack,
+            ) {
                 Ok(Some(s)) => data.insert(md_mime, s),
                 Ok(None) | Err(InternalRenderError::Eval(_)) => None,
                 Err(_) => None, // TODO: print the error
@@ -219,6 +248,7 @@ impl PipelineRender {
                 DrawSvg,
                 format_decl_ids.draw_svg,
                 engine_state,
+                spans.render.svg,
                 stack,
             ) {
                 Ok(Some(s)) => data.insert(mime::IMAGE_SVG, s),

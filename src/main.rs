@@ -140,6 +140,7 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
 
     let mut engine_state = nu::initial_engine_state();
     let format_decl_ids = FormatDeclIds::find(&engine_state).unwrap();
+    let spans = nu::module::create_nuju_module(&mut engine_state);
     nu::commands::hide_incompatible_commands(&mut engine_state).unwrap();
     let konst = Konst::register(&mut engine_state).unwrap();
     let (engine_state, interrupt_signal) = nu::add_interrupt_signal(engine_state);
@@ -151,6 +152,7 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
         iopub: iopub_tx.clone(),
         format_decl_ids,
         konst,
+        spans: spans.clone(),
     };
     let engine_state = add_jupyter_command_context(engine_state, ctx);
 
@@ -183,6 +185,7 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
         engine_state,
         format_decl_ids,
         konst,
+        spans,
         stack,
         cell,
     };

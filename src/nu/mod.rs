@@ -15,6 +15,7 @@ use thiserror::Error;
 
 pub mod commands;
 pub mod konst;
+pub mod module;
 pub mod render;
 
 #[allow(clippy::let_and_return)] // i like it here

@@ -5,6 +5,7 @@ use nu_protocol::Category;
 use tokio::sync::mpsc;
 
 use super::konst::Konst;
+use super::module::KernelInternalSpans;
 use super::render::FormatDeclIds;
 use crate::jupyter::messages::multipart::Multipart;
 
@@ -40,6 +41,7 @@ pub struct JupyterCommandContext {
     pub iopub: mpsc::Sender<Multipart>,
     pub format_decl_ids: FormatDeclIds,
     pub konst: Konst,
+    pub spans: KernelInternalSpans,
 }
 
 pub fn add_jupyter_command_context(

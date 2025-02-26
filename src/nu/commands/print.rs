@@ -109,10 +109,16 @@ impl Command for Print {
             })
             .transpose()?;
 
-        let render: StringifiedPipelineRender =
-            PipelineRender::render(to_render, engine_state, stack, self.0.format_decl_ids, mime)
-                .unwrap() // TODO: handle this better
-                .into();
+        let render: StringifiedPipelineRender = PipelineRender::render(
+            to_render,
+            engine_state,
+            stack,
+            &self.0.spans,
+            self.0.format_decl_ids,
+            mime,
+        )
+        .unwrap() // TODO: handle this better
+        .into();
 
         let display_data = DisplayData {
             data: render.data,

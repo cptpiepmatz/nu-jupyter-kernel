@@ -34,6 +34,17 @@ nu-protocol = { version = "0.102.0", features = ["plugin"] }
 nu-plugin = "0.102.0"
 nuon = "0.102.0"
 
+[patch.crates-io]
+nu-cmd-extra = { git = "https://github.com/nushell/nushell.git" }
+nu-cmd-lang = { git = "https://github.com/nushell/nushell.git" }
+nu-cmd-plugin = { git = "https://github.com/nushell/nushell.git" }
+nu-command = { git = "https://github.com/nushell/nushell.git" }
+nu-engine = { git = "https://github.com/nushell/nushell.git" }
+nu-parser = { git = "https://github.com/nushell/nushell.git" }
+nu-protocol = { git = "https://github.com/nushell/nushell.git" }
+nu-plugin = { git = "https://github.com/nushell/nushell.git" }
+nuon = { git = "https://github.com/nushell/nushell.git" }
+
 # plotting
 [dependencies.nu-plotters]
 package = "nu_plugin_plotters"
@@ -79,6 +90,7 @@ dirs = "6"
 # Formatting and Utilities
 const_format = "0.2.32"
 hex = "0.4.3"
+indoc = "2"
 
 # Media and Configuration Types
 mime = "0.3.17"

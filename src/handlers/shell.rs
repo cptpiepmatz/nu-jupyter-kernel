@@ -19,6 +19,7 @@ use crate::jupyter::messages::{Header, Message, Metadata};
 use crate::jupyter::Shutdown;
 use crate::nu::commands::external::External;
 use crate::nu::konst::Konst;
+use crate::nu::module::KernelInternalSpans;
 use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender};
 use crate::nu::{self, ExecuteError, ReportExecuteError};
 use crate::util::Select;
@@ -35,6 +36,7 @@ pub struct HandlerContext {
     pub engine_state: EngineState,
     pub format_decl_ids: FormatDeclIds,
     pub konst: Konst,
+    pub spans: KernelInternalSpans,
     pub stack: Stack,
     pub cell: Cell,
 }
@@ -276,6 +278,7 @@ async fn handle_execute_results(
                 pipeline_data,
                 &ctx.engine_state,
                 &mut ctx.stack,
+                &ctx.spans,
                 ctx.format_decl_ids,
                 render_filter.take(),
             )
