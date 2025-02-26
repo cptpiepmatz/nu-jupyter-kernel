@@ -87,7 +87,7 @@ def test_nuju_content(kernel: BlockingKernelClient):
         assert nuju_constant["version"]["nu"] == nu_version
 
 
-def test_persistantance(kernel: BlockingKernelClient):
+def test_persistence(kernel: BlockingKernelClient):
     set_value = ok(kernel, "let foo = 'bar'")
     assert len(set_value) == 0
     
