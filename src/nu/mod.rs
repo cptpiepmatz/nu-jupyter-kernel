@@ -8,7 +8,8 @@ use std::sync::Arc;
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{EngineState, Stack, StateDelta, StateWorkingSet};
 use nu_protocol::{
-    CompileError, ParseError, PipelineData, ShellError, Signals, Span, Value, NU_VARIABLE_ID,
+    CompileError, ParseError, PipelineData, ShellError, Signals, Span, UseAnsiColoring, Value,
+    NU_VARIABLE_ID,
 };
 use thiserror::Error;
 
@@ -195,7 +196,12 @@ impl Debug for ReportExecuteError<'_> {
 
         let config = self.working_set.get_config();
 
-        let ansi_support = config.use_ansi_coloring;
+        let ansi_support = match config.use_ansi_coloring {
+            // TODO: design a better auto determination
+            UseAnsiColoring::Auto => true,
+            UseAnsiColoring::True => true,
+            UseAnsiColoring::False => false,
+        };
 
         let error_style = &config.error_style;
 

@@ -102,7 +102,7 @@ impl PipelineRender {
             .input_output_types
             .iter()
             .map(|(input, _)| input)
-            .any(|input| ty.is_subtype(input));
+            .any(|input| ty.is_subtype_of(input));
 
         match may {
             false => Ok(None),
