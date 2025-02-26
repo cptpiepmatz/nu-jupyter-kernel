@@ -66,15 +66,15 @@ chrono = "0.4.38"
 
 # Derive Macros
 clap = { version = "4.5.4", features = ["derive"] }
-derive_more = { version = "1.0.0", features = ["full"] }
-strum = { version = "0.26", features = ["derive"] }
+derive_more = { version = "2", features = ["full"] }
+strum = { version = "0.27", features = ["derive"] }
 
 # Error Handling
 thiserror = "2.0.3"
 miette = { version = "7.2.0", features = ["fancy"] }
 
 # Filesystem
-dirs = "5.0.1"
+dirs = "6"
 
 # Formatting and Utilities
 const_format = "0.2.32"
