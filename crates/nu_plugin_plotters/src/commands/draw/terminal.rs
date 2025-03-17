@@ -120,7 +120,7 @@ impl DrawTerminal {
             .unwrap();
             println!("{sixel}");
         }
-        
+
         Ok(Value::nothing(span))
     }
 }
