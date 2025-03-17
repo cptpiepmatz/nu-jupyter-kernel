@@ -1,9 +1,11 @@
 use icy_sixel::{DiffusionMethod, MethodForLargest, MethodForRep, PixelFormat, Quality};
+use image::{DynamicImage, ImageBuffer, RgbImage};
 use nu_engine::command_prelude::*;
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
 use nu_protocol::{FromValue, LabeledError};
 use plotters::prelude::{BitMapBackend, IntoDrawingArea};
 use plotters::style::WHITE;
+use viuer::KittySupport;
 
 use crate::value;
 
@@ -25,7 +27,7 @@ impl Command for DrawTerminal {
                     .map(ToOwned::to_owned)
                     .collect(),
             )
-            .input_output_type(value::Chart2d::ty(), Type::String)
+            .input_output_type(value::Chart2d::ty(), Type::Nothing)
     }
 
     fn description(&self) -> &str {
@@ -98,18 +100,27 @@ impl DrawTerminal {
 
         super::draw(chart, drawing_backend.into_drawing_area());
 
-        let output = icy_sixel::sixel_string(
-            &buf,
-            size.0 as i32,
-            size.1 as i32,
-            PixelFormat::RGB888,
-            DiffusionMethod::Stucki,
-            MethodForLargest::Auto,
-            MethodForRep::Auto,
-            Quality::HIGH,
-        )
-        .unwrap(); // TODO: convert that error somehow into shell error
-
-        Ok(Value::string(output, span))
+        // TODO: convert these errors somehow into shell errors
+        if viuer::get_kitty_support() != KittySupport::None || viuer::is_iterm_supported() {
+            let img: RgbImage = ImageBuffer::from_raw(size.0, size.1, buf).unwrap();
+            let img = DynamicImage::ImageRgb8(img);
+            viuer::print(&img, &viuer::Config::default()).unwrap();
+        }
+        else {
+            let sixel = icy_sixel::sixel_string(
+                &buf,
+                size.0 as i32,
+                size.1 as i32,
+                PixelFormat::RGB888,
+                DiffusionMethod::Stucki,
+                MethodForLargest::Auto,
+                MethodForRep::Auto,
+                Quality::HIGH,
+            )
+            .unwrap();
+            println!("{sixel}");
+        }
+        
+        Ok(Value::nothing(span))
     }
 }

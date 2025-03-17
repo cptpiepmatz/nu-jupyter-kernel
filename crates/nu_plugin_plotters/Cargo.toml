@@ -21,6 +21,8 @@ typetag = "0.2"
 
 # drawing to the terminal
 icy_sixel = "0.1"
+viuer = "0.9"
+image = "0.25"
 
 # misc
 indoc = "2"
