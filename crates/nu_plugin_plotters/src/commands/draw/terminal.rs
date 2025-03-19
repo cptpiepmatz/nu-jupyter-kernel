@@ -104,7 +104,10 @@ impl DrawTerminal {
         if viuer::get_kitty_support() != KittySupport::None || viuer::is_iterm_supported() {
             let img: RgbImage = ImageBuffer::from_raw(size.0, size.1, buf).unwrap();
             let img = DynamicImage::ImageRgb8(img);
-            viuer::print(&img, &viuer::Config::default()).unwrap();
+            viuer::print(&img, &viuer::Config {
+                absolute_offset: false,
+                ..Default::default()
+            }).unwrap();
         }
         else {
             let sixel = icy_sixel::sixel_string(
