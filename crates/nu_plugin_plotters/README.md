@@ -48,8 +48,7 @@ The plugin provides three main commands:
 - **`draw`**: 
   This renders the chart onto a canvas.
   You can output to an SVG file (using the `save` command) or display directly
-  in the terminal (if it supports Sixel graphics). 
-  [Check terminal Sixel support here](https://www.arewesixelyet.com).
+  in the terminal (using iterm, kitty or sixel).
 
 These commands are modular, allowing you to build and inspect charts step by 
 step. 
