@@ -1,6 +1,6 @@
 [package]
 name = "nu-jupyter-kernel"
-version = "0.1.8+0.103.0"
+version = "0.1.9+0.104.0"
 edition.workspace = true
 description = "A jupyter raw kernel for nu"
 repository.workspace = true
@@ -24,15 +24,15 @@ plotting = ["nu-plotters"]
 members = ["crates/nu_plugin_plotters"]
 
 [workspace.dependencies]
-nu-cmd-extra = "0.103.0"
-nu-cmd-lang = "0.103.0"
-nu-cmd-plugin = "0.103.0"
-nu-command = { version = "0.103.0", features = ["plugin"] }
-nu-engine = { version = "0.103.0" }
-nu-parser = { version = "0.103.0", features = ["plugin"] }
-nu-protocol = { version = "0.103.0", features = ["plugin"] }
-nu-plugin = "0.103.0"
-nuon = "0.103.0"
+nu-cmd-extra = "0.104.0"
+nu-cmd-lang = "0.104.0"
+nu-cmd-plugin = "0.104.0"
+nu-command = { version = "0.104.0", features = ["plugin"] }
+nu-engine = { version = "0.104.0" }
+nu-parser = { version = "0.104.0", features = ["plugin"] }
+nu-protocol = { version = "0.104.0", features = ["plugin"] }
+nu-plugin = "0.104.0"
+nuon = "0.104.0"
 
 # plotting
 [dependencies.nu-plotters]
@@ -47,7 +47,7 @@ nu-cmd-extra.workspace = true
 nu-cmd-lang.workspace = true
 nu-cmd-plugin.workspace = true
 nu-command.workspace = true
-nu-engine.version = "0.103.0"  # cannot publish if this inherits from workspace
+nu-engine.version = "0.104.0"  # cannot publish if this inherits from workspace
 nu-parser.workspace = true
 nu-protocol.workspace = true
 
@@ -96,3 +96,6 @@ tokio = { version = "1.39.2", features = ["rt", "macros", "parking_lot"] }
 
 # Miscellaneous
 atomic_enum = "0.3.0"
+
+[patch.crates-io]
+zip = { git = "https://github.com/zip-rs/zip2", tag = "v2.5.0" }
