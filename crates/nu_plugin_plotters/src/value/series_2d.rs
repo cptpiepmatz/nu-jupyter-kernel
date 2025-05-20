@@ -145,7 +145,7 @@ impl Series2d {
 
     pub fn y_range(&self) -> Option<Range> {
         self.range(
-            |c| c.y,
+            |c| c.y.0,
             |c| match self {
                 Series2d::Line(_) => (c, c),
                 Series2d::Bar(_) => (cmp::min(Coord1d::Int(0), c), cmp::max(Coord1d::Int(0), c)),
