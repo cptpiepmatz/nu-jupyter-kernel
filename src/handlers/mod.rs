@@ -1,10 +1,10 @@
 pub mod iopub {
     use tokio::sync::{broadcast, mpsc};
 
-    use crate::jupyter::messages::multipart::Multipart;
-    use crate::jupyter::Shutdown;
-    use crate::util::Select;
     use crate::IopubSocket;
+    use crate::jupyter::Shutdown;
+    use crate::jupyter::messages::multipart::Multipart;
+    use crate::util::Select;
 
     pub async fn handle(
         mut socket: IopubSocket,
@@ -33,9 +33,9 @@ pub mod heartbeat {
     use tokio::sync::broadcast;
     use zeromq::{SocketRecv, SocketSend};
 
+    use crate::HeartbeatSocket;
     use crate::jupyter::Shutdown;
     use crate::util::Select;
-    use crate::HeartbeatSocket;
 
     pub async fn handle(mut socket: HeartbeatSocket, mut shutdown: broadcast::Receiver<Shutdown>) {
         loop {

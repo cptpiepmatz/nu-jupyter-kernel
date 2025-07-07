@@ -2,14 +2,14 @@ use std::collections::HashMap;
 use std::env;
 use std::fmt::{Debug, Write};
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{EngineState, Stack, StateDelta, StateWorkingSet};
 use nu_protocol::{
-    CompileError, ParseError, PipelineData, ShellError, Signals, Span, UseAnsiColoring, Value,
-    NU_VARIABLE_ID,
+    CompileError, NU_VARIABLE_ID, ParseError, PipelineData, ShellError, Signals, Span,
+    UseAnsiColoring, Value,
 };
 use thiserror::Error;
 
@@ -254,7 +254,7 @@ impl<'s> ReportExecuteError<'s> {
     }
 
     pub fn fmt(&self) -> String {
-        format!("Error: {:?}", self)
+        format!("Error: {self:?}")
     }
 }
 

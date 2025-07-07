@@ -1,6 +1,6 @@
 use std::ops::Deref;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use bytes::Bytes;
 use chrono::Utc;
@@ -10,13 +10,13 @@ use hmac::{Hmac, Mac};
 use nu_protocol::{FromValue, IntoValue};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sha2::digest::InvalidLength;
 use sha2::Sha256;
+use sha2::digest::InvalidLength;
 use uuid::Uuid;
 use zeromq::SocketRecv;
 
 use self::shell::ShellRequest;
-use crate::{Channel, CARGO_TOML};
+use crate::{CARGO_TOML, Channel};
 
 pub mod control;
 pub mod iopub;

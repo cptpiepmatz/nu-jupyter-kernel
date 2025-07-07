@@ -1,15 +1,15 @@
 use std::ops::Deref;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use tokio::sync::broadcast;
 
+use crate::ControlSocket;
+use crate::jupyter::Shutdown;
 use crate::jupyter::kernel_info::KernelInfo;
 use crate::jupyter::messages::control::{ControlReply, ControlReplyOk, ControlRequest};
 use crate::jupyter::messages::{Header, Message, Metadata};
-use crate::jupyter::Shutdown;
-use crate::ControlSocket;
 
 pub async fn handle(
     mut socket: ControlSocket,

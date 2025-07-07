@@ -1,10 +1,10 @@
 use std::io::Cursor;
 
+use image::{DynamicImage, ImageBuffer, ImageFormat, RgbImage};
 use nu_engine::command_prelude::*;
 use nu_plugin::SimplePluginCommand;
-use nu_protocol::{ast::Pipeline, FromValue};
-use plotters::{drawing, prelude::{BitMapBackend, IntoDrawingArea}};
-use image::{codecs::png::PngEncoder, DynamicImage, ImageBuffer, ImageEncoder, ImageFormat, RgbImage};
+use nu_protocol::FromValue;
+use plotters::prelude::{BitMapBackend, IntoDrawingArea};
 use plotters::style::WHITE;
 
 use crate::value;
@@ -21,7 +21,12 @@ impl Command for DrawPng {
         Signature::new(Command::name(self))
             .add_help()
             .description(Command::description(self))
-            .search_terms(Command::search_terms(self).into_iter().map(ToOwned::to_owned).collect())
+            .search_terms(
+                Command::search_terms(self)
+                    .into_iter()
+                    .map(ToOwned::to_owned)
+                    .collect(),
+            )
             .input_output_type(value::Chart2d::ty(), Type::Binary)
     }
 
@@ -38,7 +43,7 @@ impl Command for DrawPng {
         _: &EngineState,
         _: &mut Stack,
         call: &Call,
-        input: PipelineData
+        input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
         let span = input.span().unwrap_or(call.head);
         let input = input.into_value(span)?;
@@ -66,12 +71,12 @@ impl SimplePluginCommand for DrawPng {
     }
 
     fn run(
-            &self,
-            _: &Self::Plugin,
-            _: &nu_plugin::EngineInterface,
-            _: &nu_plugin::EvaluatedCall,
-            input: &Value,
-        ) -> Result<Value, nu_protocol::LabeledError> {
+        &self,
+        _: &Self::Plugin,
+        _: &nu_plugin::EngineInterface,
+        _: &nu_plugin::EvaluatedCall,
+        input: &Value,
+    ) -> Result<Value, nu_protocol::LabeledError> {
         let input = input.clone();
         DrawPng::run(self, input).map_err(Into::into)
     }

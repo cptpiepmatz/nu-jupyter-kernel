@@ -107,7 +107,8 @@ impl DrawTerminal {
             viuer::print(&img, &viuer::Config {
                 absolute_offset: false,
                 ..Default::default()
-            }).unwrap();
+            })
+            .unwrap();
         }
         else {
             let sixel = icy_sixel::sixel_string(

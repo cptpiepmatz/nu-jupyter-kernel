@@ -5,7 +5,7 @@ use nu_engine::CallExt;
 use nu_protocol::engine::Command;
 use nu_protocol::{FromValue, PipelineData, ShellError, Signature, Span, SyntaxShape, Type, Value};
 
-use super::{JupyterCommandContext, COMMANDS_TOML};
+use super::{COMMANDS_TOML, JupyterCommandContext};
 use crate::jupyter::messages::iopub::{DisplayData, IopubBroacast};
 use crate::jupyter::messages::{Header, Message, Metadata};
 use crate::nu::render::{PipelineRender, StringifiedPipelineRender};

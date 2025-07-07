@@ -4,7 +4,7 @@ use bytes::Bytes;
 use hmac::Mac;
 use zeromq::{SocketSend, ZmqMessage};
 
-use super::{Message, OutgoingContent, DIGESTER};
+use super::{DIGESTER, Message, OutgoingContent};
 
 pub struct Multipart(ZmqMessage);
 

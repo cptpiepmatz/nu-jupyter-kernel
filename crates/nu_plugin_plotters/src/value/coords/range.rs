@@ -37,7 +37,7 @@ impl FromValue for Range {
                             from_type: Type::Range.to_string(),
                             span: internal_span,
                             help: Some("Try a bounded range instead.".to_string()),
-                        })
+                        });
                     }
                 };
 

@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 
 use mime::Mime;
-use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::PipelineData;
+use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use parking_lot::Mutex;
 use serde_json::json;
 use tokio::sync::{broadcast, mpsc};
 
 use super::stream::StreamHandler;
+use crate::ShellSocket;
+use crate::jupyter::Shutdown;
 use crate::jupyter::kernel_info::KernelInfo;
 use crate::jupyter::messages::iopub::{self, ExecuteResult, IopubBroacast, Status};
 use crate::jupyter::messages::multipart::Multipart;
@@ -16,14 +18,12 @@ use crate::jupyter::messages::shell::{
     ShellRequest,
 };
 use crate::jupyter::messages::{Header, Message, Metadata};
-use crate::jupyter::Shutdown;
 use crate::nu::commands::external::External;
 use crate::nu::konst::Konst;
 use crate::nu::module::KernelInternalSpans;
 use crate::nu::render::{FormatDeclIds, PipelineRender, StringifiedPipelineRender};
 use crate::nu::{self, ExecuteError, ReportExecuteError};
 use crate::util::Select;
-use crate::ShellSocket;
 
 // TODO: get rid of this static by passing this into the display command
 pub static RENDER_FILTER: Mutex<Option<Mime>> = Mutex::new(Option::None);

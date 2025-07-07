@@ -2,8 +2,8 @@ use bytes::Bytes;
 use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::{FromValue, IntoValue, ShellError, Span, Type, VarId};
 
-use crate::jupyter::messages::{Header, Message};
 use crate::CARGO_TOML;
+use crate::jupyter::messages::{Header, Message};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Konst {

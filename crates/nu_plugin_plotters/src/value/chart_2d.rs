@@ -3,9 +3,9 @@ use std::any::Any;
 use nu_protocol::{CustomValue, FromValue, IntoValue, ShellError, Span, Type, Value};
 use serde::{Deserialize, Serialize};
 
+use super::Range;
 use super::color::Color;
 use super::series_2d::Series2d;
-use super::Range;
 
 #[derive(Debug, Clone, IntoValue, Serialize, Deserialize)]
 pub struct Chart2d {

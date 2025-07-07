@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::jupyter::kernel_info::KernelInfo;
 use crate::jupyter::Shutdown;
+use crate::jupyter::kernel_info::KernelInfo;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum ControlRequest {

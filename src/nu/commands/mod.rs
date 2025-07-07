@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
-use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use nu_protocol::Category;
+use nu_protocol::engine::{EngineState, Stack, StateWorkingSet};
 use tokio::sync::mpsc;
 
 use super::konst::Konst;

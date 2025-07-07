@@ -2,7 +2,7 @@ use plotters::chart::{ChartBuilder, ChartContext, LabelAreaPosition};
 use plotters::coord::Shift;
 use plotters::prelude::{Cartesian2d, DrawingArea, DrawingBackend, Rectangle};
 use plotters::series::LineSeries;
-use plotters::style::{RGBAColor, ShapeStyle, BLACK};
+use plotters::style::{BLACK, RGBAColor, ShapeStyle};
 
 use crate::value::{
     self, Bar2dSeries, Coord1d, Coord2d, Line2dSeries, Range, RangeMetadata, Series2d,
