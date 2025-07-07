@@ -2,8 +2,8 @@ use std::io::Cursor;
 
 use image::{DynamicImage, ImageBuffer, ImageFormat, RgbImage};
 use nu_engine::command_prelude::*;
-use nu_plugin::SimplePluginCommand;
-use nu_protocol::FromValue;
+use nu_plugin::PluginCommand;
+use nu_protocol::{FromValue, PipelineMetadata};
 use plotters::prelude::{BitMapBackend, IntoDrawingArea};
 use plotters::style::WHITE;
 
@@ -45,13 +45,11 @@ impl Command for DrawPng {
         call: &Call,
         input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
-        let span = input.span().unwrap_or(call.head);
-        let input = input.into_value(span)?;
-        DrawPng::run(self, input).map(|v| PipelineData::Value(v, None))
+        Ok(DrawPng::run(self, input, call.head)?)
     }
 }
 
-impl SimplePluginCommand for DrawPng {
+impl PluginCommand for DrawPng {
     type Plugin = crate::plugin::PlottersPlugin;
 
     fn name(&self) -> &str {
@@ -74,16 +72,18 @@ impl SimplePluginCommand for DrawPng {
         &self,
         _: &Self::Plugin,
         _: &nu_plugin::EngineInterface,
-        _: &nu_plugin::EvaluatedCall,
-        input: &Value,
-    ) -> Result<Value, nu_protocol::LabeledError> {
-        let input = input.clone();
-        DrawPng::run(self, input).map_err(Into::into)
+        call: &nu_plugin::EvaluatedCall,
+        input: PipelineData,
+    ) -> Result<PipelineData, nu_protocol::LabeledError> {
+        Ok(DrawPng::run(self, input, call.head)?)
     }
 }
 
 impl DrawPng {
-    fn run(&self, input: Value) -> Result<Value, ShellError> {
+    const CONTENT_TYPE: mime2::Mime = mime2::image::PNG;
+
+    fn run(&self, input: PipelineData, span: Span) -> Result<PipelineData, ShellError> {
+        let input = input.into_value(span)?;
         let span = input.span();
         let mut chart = value::Chart2d::from_value(input)?;
 
@@ -105,6 +105,11 @@ impl DrawPng {
         let mut png_buf = Cursor::new(Vec::new());
         img.write_to(&mut png_buf, ImageFormat::Png).unwrap();
 
-        Ok(Value::binary(png_buf.into_inner(), span))
+        Ok(PipelineData::Value(
+            Value::binary(png_buf.into_inner(), span),
+            Some(
+                PipelineMetadata::default().with_content_type(Some(Self::CONTENT_TYPE.to_string())),
+            ),
+        ))
     }
 }

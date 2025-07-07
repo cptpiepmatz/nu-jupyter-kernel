@@ -1,7 +1,7 @@
 [package]
 name = "nu_plugin_plotters"
 description = "A nushell plugin for for plotting charts"
-version = "0.2.0+0.105.1"
+version = "0.2.1+0.105.1"
 edition.workspace = true
 repository.workspace = true
 license.workspace = true
@@ -29,3 +29,4 @@ image = "0.25"
 
 # misc
 indoc = "2"
+mime2 = "0.1"
