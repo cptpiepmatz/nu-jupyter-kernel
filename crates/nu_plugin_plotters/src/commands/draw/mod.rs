@@ -8,6 +8,9 @@ use crate::value::{
     self, Bar2dSeries, Coord1d, Coord2d, Line2dSeries, Range, RangeMetadata, Series2d,
 };
 
+mod png;
+pub use png::*;
+
 mod svg;
 pub use svg::*;
 

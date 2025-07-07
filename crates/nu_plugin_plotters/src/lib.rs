@@ -18,6 +18,7 @@ pub fn add_plotters_command_context(mut engine_state: EngineState) -> EngineStat
             commands::series::BarSeries,
             commands::series::LineSeries,
             commands::Chart2d,
+            commands::draw::DrawPng,
             commands::draw::DrawSvg,
             commands::draw::DrawTerminal,
         );
