@@ -38,10 +38,10 @@ impl Command for DrawSvg {
         &self,
         _: &EngineState,
         _: &mut Stack,
-        _: &Call,
+        call: &Call,
         input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
-        let span = input.span().unwrap_or(Span::unknown());
+        let span = input.span().unwrap_or(call.head);
         let input = input.into_value(span)?;
         DrawSvg::run(self, input).map(|v| PipelineData::Value(v, None))
     }

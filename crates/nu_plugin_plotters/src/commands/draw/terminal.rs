@@ -42,10 +42,10 @@ impl Command for DrawTerminal {
         &self,
         _: &EngineState,
         _: &mut Stack,
-        _: &Call,
+        call: &Call,
         input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
-        let span = input.span().unwrap_or(Span::unknown());
+        let span = input.span().unwrap_or(call.head);
         let input = input.into_value(span)?;
         DrawTerminal::run(self, input).map(|v| PipelineData::Value(v, None))
     }
