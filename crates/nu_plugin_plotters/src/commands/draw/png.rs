@@ -2,8 +2,8 @@ use std::io::Cursor;
 
 use image::{DynamicImage, ImageBuffer, ImageFormat, RgbImage};
 use nu_engine::command_prelude::*;
-use nu_plugin::SimplePluginCommand;
-use nu_protocol::FromValue;
+use nu_plugin::PluginCommand;
+use nu_protocol::{FromValue, PipelineMetadata};
 use plotters::prelude::{BitMapBackend, IntoDrawingArea};
 use plotters::style::WHITE;
 
@@ -47,11 +47,16 @@ impl Command for DrawPng {
     ) -> Result<PipelineData, ShellError> {
         let span = input.span().unwrap_or(call.head);
         let input = input.into_value(span)?;
-        DrawPng::run(self, input).map(|v| PipelineData::Value(v, None))
+        Self::run(self, input).map(|v| {
+            v.into_pipeline_data_with_metadata(PipelineMetadata {
+                content_type: Self::CONTENT_TYPE.to_owned().into(),
+                ..Default::default()
+            })
+        })
     }
 }
 
-impl SimplePluginCommand for DrawPng {
+impl PluginCommand for DrawPng {
     type Plugin = crate::plugin::PlottersPlugin;
 
     fn name(&self) -> &str {
@@ -74,15 +79,25 @@ impl SimplePluginCommand for DrawPng {
         &self,
         _: &Self::Plugin,
         _: &nu_plugin::EngineInterface,
-        _: &nu_plugin::EvaluatedCall,
-        input: &Value,
-    ) -> Result<Value, nu_protocol::LabeledError> {
-        let input = input.clone();
-        DrawPng::run(self, input).map_err(Into::into)
+        call: &nu_plugin::EvaluatedCall,
+        input: PipelineData,
+    ) -> Result<PipelineData, nu_protocol::LabeledError> {
+        let span = input.span().unwrap_or(call.head);
+        let input = input.into_value(span)?;
+        Self::run(self, input)
+            .map(|v| {
+                v.into_pipeline_data_with_metadata(PipelineMetadata {
+                    content_type: Self::CONTENT_TYPE.to_owned().into(),
+                    ..Default::default()
+                })
+            })
+            .map_err(Into::into)
     }
 }
 
 impl DrawPng {
+    const CONTENT_TYPE: &str = "image/png";
+
     fn run(&self, input: Value) -> Result<Value, ShellError> {
         let span = input.span();
         let mut chart = value::Chart2d::from_value(input)?;

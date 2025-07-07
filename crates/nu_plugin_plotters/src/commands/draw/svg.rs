@@ -1,6 +1,6 @@
 use nu_engine::command_prelude::*;
-use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
-use nu_protocol::{FromValue, LabeledError};
+use nu_plugin::PluginCommand;
+use nu_protocol::{FromValue, PipelineMetadata};
 use plotters::prelude::{IntoDrawingArea, SVGBackend};
 
 use crate::value;
@@ -43,11 +43,16 @@ impl Command for DrawSvg {
     ) -> Result<PipelineData, ShellError> {
         let span = input.span().unwrap_or(call.head);
         let input = input.into_value(span)?;
-        DrawSvg::run(self, input).map(|v| PipelineData::Value(v, None))
+        Self::run(self, input).map(|v| {
+            v.into_pipeline_data_with_metadata(PipelineMetadata {
+                content_type: Self::CONTENT_TYPE.to_owned().into(),
+                ..Default::default()
+            })
+        })
     }
 }
 
-impl SimplePluginCommand for DrawSvg {
+impl PluginCommand for DrawSvg {
     type Plugin = crate::plugin::PlottersPlugin;
 
     fn name(&self) -> &str {
@@ -69,16 +74,26 @@ impl SimplePluginCommand for DrawSvg {
     fn run(
         &self,
         _: &Self::Plugin,
-        _: &EngineInterface,
-        _: &EvaluatedCall,
-        input: &Value,
-    ) -> Result<Value, LabeledError> {
-        let input = input.clone();
-        DrawSvg::run(self, input).map_err(Into::into)
+        _: &nu_plugin::EngineInterface,
+        call: &nu_plugin::EvaluatedCall,
+        input: PipelineData,
+    ) -> Result<PipelineData, nu_protocol::LabeledError> {
+        let span = input.span().unwrap_or(call.head);
+        let input = input.into_value(span)?;
+        Self::run(self, input)
+            .map(|v| {
+                v.into_pipeline_data_with_metadata(PipelineMetadata {
+                    content_type: Self::CONTENT_TYPE.to_owned().into(),
+                    ..Default::default()
+                })
+            })
+            .map_err(Into::into)
     }
 }
 
 impl DrawSvg {
+    const CONTENT_TYPE: &str = "image/svg+xml";
+
     fn run(&self, input: Value) -> Result<Value, ShellError> {
         let span = input.span();
         let chart = value::Chart2d::from_value(input)?;
