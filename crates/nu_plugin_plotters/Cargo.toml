@@ -29,3 +29,4 @@ image = "0.25"
 
 # misc
 indoc = "2"
+mime2 = "0.1"

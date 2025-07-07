@@ -2226,6 +2226,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
+name = "mime2"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c60a30d5a356d03ae2a9a9a366be066a41ae89c7a46c81824f308b3d6dabddd3"
+dependencies = [
+ "csv",
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
 name = "mime_guess"
 version = "2.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2865,6 +2876,7 @@ dependencies = [
  "icy_sixel",
  "image 0.25.6",
  "indoc",
+ "mime2",
  "nu-engine",
  "nu-plugin",
  "nu-protocol",
