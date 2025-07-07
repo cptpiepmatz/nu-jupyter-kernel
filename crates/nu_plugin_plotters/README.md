@@ -52,16 +52,6 @@ Each command's output is a custom value that can be converted into standard Nu
 values for further inspection or manipulation.
 
 ## `nu-jupyter-kernel` Integration
-This plugin is directly integrated into the 
-[`nu-jupyter-kernel`](https://github.com/cptpiepmatz/nu-jupyter-kernel) and 
-therefore doesn't need to installed separately in order to create charts for the 
-notebook.
-
-Also charts are automatically "drawn" and don't need to be called via `draw svg`.
-Just output the chart and the kernel will execute the `draw svg` command 
-automatically (you may need to enforce this using `nuju display svg`).
-
-
 This plugin is integrated directly into the 
 [`nu-jupyter-kernel`](https://github.com/cptpiepmatz/nu-jupyter-kernel), so 
 there's no need for separate installation to create charts within Jupyter 
