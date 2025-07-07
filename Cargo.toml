@@ -37,7 +37,7 @@ nuon = "0.105.1"
 # plotting
 [dependencies.nu-plotters]
 package = "nu_plugin_plotters"
-version = "0.1"
+version = "0.2"
 path = "crates/nu_plugin_plotters"
 optional = true
 

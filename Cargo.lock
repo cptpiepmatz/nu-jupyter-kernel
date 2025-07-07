@@ -2859,7 +2859,7 @@ dependencies = [
 
 [[package]]
 name = "nu_plugin_plotters"
-version = "0.1.7+0.105.1"
+version = "0.2.0+0.105.1"
 dependencies = [
  "chrono",
  "icy_sixel",
