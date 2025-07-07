@@ -1,6 +1,6 @@
 use nu_engine::command_prelude::*;
-use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
-use nu_protocol::{FromValue, LabeledError};
+use nu_plugin::{EngineInterface, EvaluatedCall, PluginCommand};
+use nu_protocol::{FromValue, LabeledError, PipelineMetadata};
 use plotters::prelude::{IntoDrawingArea, SVGBackend};
 
 use crate::value;
@@ -41,13 +41,11 @@ impl Command for DrawSvg {
         call: &Call,
         input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
-        let span = input.span().unwrap_or(call.head);
-        let input = input.into_value(span)?;
-        DrawSvg::run(self, input).map(|v| PipelineData::Value(v, None))
+        Ok(DrawSvg::run(self, input, call.head)?)
     }
 }
 
-impl SimplePluginCommand for DrawSvg {
+impl PluginCommand for DrawSvg {
     type Plugin = crate::plugin::PlottersPlugin;
 
     fn name(&self) -> &str {
@@ -70,16 +68,16 @@ impl SimplePluginCommand for DrawSvg {
         &self,
         _: &Self::Plugin,
         _: &EngineInterface,
-        _: &EvaluatedCall,
-        input: &Value,
-    ) -> Result<Value, LabeledError> {
-        let input = input.clone();
-        DrawSvg::run(self, input).map_err(Into::into)
+        call: &EvaluatedCall,
+        input: PipelineData,
+    ) -> Result<PipelineData, LabeledError> {
+        Ok(DrawSvg::run(self, input, call.head)?)
     }
 }
 
 impl DrawSvg {
-    fn run(&self, input: Value) -> Result<Value, ShellError> {
+    fn run(&self, input: PipelineData, span: Span) -> Result<PipelineData, ShellError> {
+        let input = input.into_value(span)?;
         let span = input.span();
         let chart = value::Chart2d::from_value(input)?;
 
@@ -87,6 +85,12 @@ impl DrawSvg {
         let drawing_backend = SVGBackend::with_string(&mut output, (chart.width, chart.height));
         super::draw(chart, drawing_backend.into_drawing_area());
 
-        Ok(Value::string(output, span))
+        Ok(PipelineData::Value(
+            Value::string(output, span),
+            Some(
+                PipelineMetadata::default()
+                    .with_content_type(Some(mime2::image::SVG_XML.to_string())),
+            ),
+        ))
     }
 }
