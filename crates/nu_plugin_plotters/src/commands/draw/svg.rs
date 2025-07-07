@@ -76,6 +76,8 @@ impl PluginCommand for DrawSvg {
 }
 
 impl DrawSvg {
+    const CONTENT_TYPE: mime2::Mime = mime2::image::SVG_XML;
+
     fn run(&self, input: PipelineData, span: Span) -> Result<PipelineData, ShellError> {
         let input = input.into_value(span)?;
         let span = input.span();
@@ -88,8 +90,7 @@ impl DrawSvg {
         Ok(PipelineData::Value(
             Value::string(output, span),
             Some(
-                PipelineMetadata::default()
-                    .with_content_type(Some(mime2::image::SVG_XML.to_string())),
+                PipelineMetadata::default().with_content_type(Some(Self::CONTENT_TYPE.to_string())),
             ),
         ))
     }

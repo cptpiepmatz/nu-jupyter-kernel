@@ -80,6 +80,8 @@ impl PluginCommand for DrawPng {
 }
 
 impl DrawPng {
+    const CONTENT_TYPE: mime2::Mime = mime2::image::PNG;
+
     fn run(&self, input: PipelineData, span: Span) -> Result<PipelineData, ShellError> {
         let input = input.into_value(span)?;
         let span = input.span();
@@ -106,7 +108,7 @@ impl DrawPng {
         Ok(PipelineData::Value(
             Value::binary(png_buf.into_inner(), span),
             Some(
-                PipelineMetadata::default().with_content_type(Some(mime2::image::PNG.to_string())),
+                PipelineMetadata::default().with_content_type(Some(Self::CONTENT_TYPE.to_string())),
             ),
         ))
     }
