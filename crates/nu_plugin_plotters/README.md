@@ -8,17 +8,13 @@
 
 <br>
 
-<p align="center">
-  <a href="https://crates.io/crates/nu-plugin-highlight">
-    <img alt="Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2Fcrates%2Fnu_plugin_plotters%2FCargo.toml&query=package.version&prefix=v&style=for-the-badge&label=version"/>
-  </a>
-  <a href="https://github.com/nushell/nushell">
-    <img alt="Nu Version" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=workspace.dependencies%5B'nu-engine'%5D.version&prefix=v&style=for-the-badge&label=nu%20version&color=%234E9A06"/>
-  </a>
-  <a href="https://github.com/cptpiepmatz/nu-plugin-highlight/blob/main/LICENSE">
-    <img alt="License" src="https://img.shields.io/github/license/cptpiepmatz/nu-jupyter-kernel?style=for-the-badge"/>   
-  </a>
-</p>
+<div align="center">
+
+  [![Crates.io Version](https://img.shields.io/crates/v/nu_plugin_plotters?style=for-the-badge)](https://crates.io/crates/nu_plugin_plotters)
+  [![Nu Version](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fcptpiepmatz%2Fnu-jupyter-kernel%2Fmain%2FCargo.toml&query=workspace.dependencies%5B'nu-engine'%5D.version&prefix=v&style=for-the-badge&label=nu%20version&color=%234E9A06)](https://github.com/nushell/nushell)
+  [![License](https://img.shields.io/crates/l/nu_plugin_plotters?style=for-the-badge)](https://github.com/cptpiepmatz/nu-jupyter-kernel/blob/main/LICENSE)
+
+</div>
 
 ## About
 `nu_plugin_plotters` is a plugin for [Nushell](https://www.nushell.sh) that 
