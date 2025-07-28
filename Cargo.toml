@@ -1,6 +1,6 @@
 [package]
 name = "nu-jupyter-kernel"
-version = "0.1.10+0.105.1"
+version = "0.1.11+0.106.0"
 edition.workspace = true
 description = "A jupyter raw kernel for nu"
 repository.workspace = true
@@ -24,15 +24,15 @@ plotting = ["nu-plotters"]
 members = ["crates/nu_plugin_plotters"]
 
 [workspace.dependencies]
-nu-cmd-extra = "0.105.1"
-nu-cmd-lang = "0.105.1"
-nu-cmd-plugin = "0.105.1"
-nu-command = { version = "0.105.1", features = ["plugin"] }
-nu-engine = { version = "0.105.1" }
-nu-parser = { version = "0.105.1", features = ["plugin"] }
-nu-protocol = { version = "0.105.1", features = ["plugin"] }
-nu-plugin = "0.105.1"
-nuon = "0.105.1"
+nu-cmd-extra = "0.106.0"
+nu-cmd-lang = "0.106.0"
+nu-cmd-plugin = "0.106.0"
+nu-command = { version = "0.106.0", features = ["plugin"] }
+nu-engine = { version = "0.106.0" }
+nu-parser = { version = "0.106.0", features = ["plugin"] }
+nu-protocol = { version = "0.106.0", features = ["plugin"] }
+nu-plugin = "0.106.0"
+nuon = "0.106.0"
 
 # plotting
 [dependencies.nu-plotters]
@@ -47,7 +47,7 @@ nu-cmd-extra.workspace = true
 nu-cmd-lang.workspace = true
 nu-cmd-plugin.workspace = true
 nu-command.workspace = true
-nu-engine.version = "0.105.1"  # cannot publish if this inherits from workspace
+nu-engine.version = "0.106.0"  # cannot publish if this inherits from workspace
 nu-parser.workspace = true
 nu-protocol.workspace = true
 
