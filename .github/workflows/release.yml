@@ -76,6 +76,9 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: LS dist
+        run: ls -R dist
+
       - name: Checkout Cargo.lock
         uses: actions/checkout@v4
         with:
