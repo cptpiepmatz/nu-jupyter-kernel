@@ -45,6 +45,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract ouch
+        shell: bash
         run: tar -xf ouch-*
 
       - name: Move ouch
