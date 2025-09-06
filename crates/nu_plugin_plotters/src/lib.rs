@@ -1,3 +1,5 @@
+#![allow(clippy::result_large_err)]
+
 use nu_protocol::engine::{EngineState, StateWorkingSet};
 
 pub mod commands;

@@ -1,6 +1,7 @@
 // for now
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(clippy::result_large_err)]
 
 use std::path::{Path, PathBuf};
 use std::{panic, process};

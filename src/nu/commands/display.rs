@@ -33,7 +33,7 @@ impl Command for Display {
             .category(super::category())
     }
 
-    fn examples(&self) -> Vec<Example> {
+    fn examples(&self) -> Vec<Example<'_>> {
         COMMANDS_TOML
             .display
             .examples
