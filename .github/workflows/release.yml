@@ -73,7 +73,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v5
         with:
-          path: ./dist
+          path: dist
           merge-multiple: true
 
       - name: Checkout Cargo.lock
@@ -100,7 +100,7 @@ jobs:
           | save $env.GITHUB_OUTPUT -ra
 
       - name: Draft Release
-        run: gh release create --draft "$TAG" ./dist/*
+        run: gh release create --draft "$TAG" dist/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.package }}/v${{ steps.version.outputs.version }}
