@@ -61,7 +61,7 @@ jobs:
       - name: Zip Release
         uses: vimtor/action-zip@v1.2
         with:
-          files: target/${{ matrix.target }}/release/${{ inputs.package }}${{ matrix.bin-ext }}
+          files: target/release/${{ inputs.package }} target/release/${{ inputs.package }}.exe
           dest: ${{ env.ARTIFACT_NAME }}
 
       - name: Upload Artifact
