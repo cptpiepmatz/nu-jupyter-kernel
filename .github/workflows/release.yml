@@ -41,6 +41,8 @@ jobs:
     steps:
       - name: Download ouch
         run: gh release download ${{ env.OUCH_VERSION }} --repo ouch-org/ouch --pattern *${{ matrix.target }}*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract ouch
         run: tar -xf ouch-*
