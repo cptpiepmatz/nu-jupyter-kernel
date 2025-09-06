@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Which crate to release
+        type: choice
+        required: true
+        options:
+          - nu-jupyter-kernel
+          - nu_plugin_plotters
+
+permissions:
+  contents: write
+
+env:
+  PACKAGE: ${{ inputs.package }}
+  OUCH_VERSION: "0.6.1"
+
+jobs:
+  build:
+    name: Build ${{ inputs.package }} for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy: 
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            format: .zip
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            format: .tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            format: .tar.gz
+    env:
+      ARTIFACT_NAME: ${{inputs.package}}-${{ matrix.target }}${{ matrix.format }}
+    
+    steps:
+      - name: Download ouch
+        run: gh release download ${{ env.OUCH_VERSION }} --repo ouch-org/ouch --pattern *${{ matrix.target }}*
+
+      - name: Extract ouch
+        run: tar -xf ouch-*
+
+      - name: Check ouch Version
+        run: ./ouch --version
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Release
+        run: cargo build --release -p "${{ env.PACKAGE }}"
+
+      - name: Compress Release
+        run: ./ouch compress target/${{ matrix.target }}/release/${{ inputs.package }}{,.exe} ${{ env.ARTIFACT_NAME }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ env.ARTIFACT_NAME }}
