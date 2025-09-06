@@ -41,7 +41,7 @@ impl Command for DrawSvg {
         call: &Call,
         input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
-        Ok(DrawSvg::run(self, input, call.head)?)
+        DrawSvg::run(self, input, call.head)
     }
 }
 

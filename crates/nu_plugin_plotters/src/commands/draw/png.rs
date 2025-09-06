@@ -45,7 +45,7 @@ impl Command for DrawPng {
         call: &Call,
         input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
-        Ok(DrawPng::run(self, input, call.head)?)
+        DrawPng::run(self, input, call.head)
     }
 }
 

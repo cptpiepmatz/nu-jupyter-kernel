@@ -80,18 +80,14 @@ pub fn create_nuju_module(engine_state: &mut EngineState) -> KernelInternalSpans
 fn find_inner_block(block: &Block, name: &str) -> Option<BlockId> {
     for pipeline in block.pipelines.iter() {
         for element in pipeline.elements.iter() {
-            if let Expr::Call(call) = &element.expr.expr {
-                if let Some(Argument::Positional(expr)) = call.arguments.first() {
-                    if let Expr::String(positional_name) = &expr.expr {
-                        if positional_name == name {
-                            if let Some(Argument::Positional(expr)) = call.arguments.get(1) {
-                                if let Expr::Block(block_id) = &expr.expr {
-                                    return Some(*block_id);
-                                }
-                            }
-                        }
-                    }
-                }
+            if let Expr::Call(call) = &element.expr.expr &&
+                let Some(Argument::Positional(expr)) = call.arguments.first() &&
+                let Expr::String(positional_name) = &expr.expr &&
+                positional_name == name &&
+                let Some(Argument::Positional(expr)) = call.arguments.get(1) &&
+                let Expr::Block(block_id) = &expr.expr
+            {
+                return Some(*block_id);
             }
         }
     }
@@ -102,17 +98,14 @@ fn find_inner_block(block: &Block, name: &str) -> Option<BlockId> {
 fn find_decl(block: &Block, name: &str) -> Option<(DeclId, Span)> {
     for pipeline in block.pipelines.iter() {
         for element in pipeline.elements.iter() {
-            if let Expr::AttributeBlock(attribute_block) = &element.expr.expr {
-                if let Expr::Call(call) = &attribute_block.item.expr {
-                    if let Some(Argument::Positional(expr)) = call.arguments.first() {
-                        if let Expr::String(positional_name) = &expr.expr {
-                            if positional_name == name {
-                                // TODO: return expression span if it includes the `@`
-                                return Some((call.decl_id, attribute_block.item.span));
-                            }
-                        }
-                    }
-                }
+            if let Expr::AttributeBlock(attribute_block) = &element.expr.expr &&
+                let Expr::Call(call) = &attribute_block.item.expr &&
+                let Some(Argument::Positional(expr)) = call.arguments.first() &&
+                let Expr::String(positional_name) = &expr.expr &&
+                positional_name == name
+            {
+                // TODO: return expression span if it includes the `@`
+                return Some((call.decl_id, attribute_block.item.span));
             }
         }
     }
