@@ -57,6 +57,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install System Deps
+        if: runner.os == 'Linux'
+        run: apt install pkg-config libfreetype6-dev libfontconfig1-dev
+
       - name: Build Release
         run: cargo build --release -p "${{ env.PACKAGE }}"
 
