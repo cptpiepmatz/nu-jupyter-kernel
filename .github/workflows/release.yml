@@ -44,7 +44,9 @@ jobs:
     steps:
       - name: Install System Deps
         if: runner.os == 'Linux'
-        run: sudo apt install -y pkg-config libfreetype6-dev libfontconfig1-dev
+        run: |
+          sudo apt update -y
+          sudo apt install -y pkg-config libfreetype6-dev libfontconfig1-dev
 
       - name: Checkout
         uses: actions/checkout@v4
