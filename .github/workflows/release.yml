@@ -39,33 +39,24 @@ jobs:
       ARTIFACT_NAME: ${{inputs.package}}-${{ matrix.target }}${{ matrix.format }}
     
     steps:
-      - name: Download ouch
-        run: gh release download ${{ env.OUCH_VERSION }} --repo ouch-org/ouch --pattern *${{ matrix.target }}*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract ouch
-        shell: bash
-        run: tar -xf ouch-*
-
-      - name: Move ouch
-        run: mv ouch-*/ouch* ./
-
-      - name: Check ouch Version
-        run: ./ouch --version
+      - name: Install System Deps
+        if: runner.os == 'Linux'
+        run: apt install -y pkg-config libfreetype6-dev libfontconfig1-dev
 
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install System Deps
-        if: runner.os == 'Linux'
-        run: apt install pkg-config libfreetype6-dev libfontconfig1-dev
 
       - name: Build Release
         run: cargo build --release -p "${{ env.PACKAGE }}"
 
       - name: Compress Release
-        run: ./ouch compress target/${{ matrix.target }}/release/${{ inputs.package }}{,.exe} ${{ env.ARTIFACT_NAME }}
+        uses: somaz94/compress-decompress@v1.5.1
+        with:
+          command: compress
+          format: ${{ matrix.format }}
+          source: target/${{ matrix.target }}/release/${{ inputs.package }}*
+          exclude: "*.pdb *.d"
+          destfilename: ${{ env.ARTIFACT_NAME }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
