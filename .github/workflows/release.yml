@@ -70,20 +70,17 @@ jobs:
     needs: build
 
     steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v5
-        with:
-          path: dist
-          merge-multiple: true
-
-      - name: LS dist
-        run: ls -R dist
-
       - name: Checkout Cargo.lock
         uses: actions/checkout@v4
         with:
           sparse-checkout: Cargo.lock
           sparse-checkout-cone-mode: false
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: dist
+          merge-multiple: true
 
       - name: Setup Nushell
         uses: hustcer/setup-nu@v3
@@ -103,8 +100,7 @@ jobs:
           | save $env.GITHUB_OUTPUT -ra
 
       - name: Draft Release
-        shell: nu {0}
-        run: ls dist | gh release create --draft $env.TAG ...$in.name
+        run: gh release create --draft "$TAG" dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.package }}/v${{ steps.version.outputs.version }}
