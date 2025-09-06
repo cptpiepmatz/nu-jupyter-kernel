@@ -29,19 +29,22 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             format: .tar.gz
+            bin-ext: ""
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             format: .tar.gz
+            bin-ext: ""
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             format: .zip
+            bin-ext: ".exe"
     env:
       ARTIFACT_NAME: ${{inputs.package}}-${{ matrix.target }}${{ matrix.format }}
     
     steps:
       - name: Install System Deps
         if: runner.os == 'Linux'
-        run: apt install -y pkg-config libfreetype6-dev libfontconfig1-dev
+        run: sudo apt install -y pkg-config libfreetype6-dev libfontconfig1-dev
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,14 +52,11 @@ jobs:
       - name: Build Release
         run: cargo build --release -p "${{ env.PACKAGE }}"
 
-      - name: Compress Release
-        uses: somaz94/compress-decompress@v1.5.1
+      - name: Zip Release
+        uses: vimtor/action-zip@v1.2
         with:
-          command: compress
-          format: ${{ matrix.format }}
-          source: target/${{ matrix.target }}/release/${{ inputs.package }}*
-          exclude: "*.pdb *.d"
-          destfilename: ${{ env.ARTIFACT_NAME }}
+          files: target/${{ matrix.target }}/release/${{ inputs.package }}${{ matrix.bin-ext }}
+          dest: ${{ env.ARTIFACT_NAME }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
