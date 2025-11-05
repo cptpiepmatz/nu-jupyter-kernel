@@ -64,6 +64,7 @@ impl FromValue for Color {
             ref v @ Value::String {
                 ref val,
                 internal_span: span,
+                ..
             } => match val.to_lowercase().as_str() {
                 "black" => Ok(BLACK.into()),
                 "blue" => Ok(BLUE.into()),

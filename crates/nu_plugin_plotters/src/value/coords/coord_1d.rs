@@ -134,7 +134,9 @@ impl FromValue for Coord1d {
     fn from_value(v: Value) -> Result<Self, ShellError> {
         match v {
             Value::Int { val, .. } => Ok(Self::Int(val)),
-            Value::Float { val, internal_span } => Self::from_float(val).map_err(|e| {
+            Value::Float {
+                val, internal_span, ..
+            } => Self::from_float(val).map_err(|e| {
                 let error = match e {
                     Coord1dFromFloatError::Nan => "Number is not a number",
                     Coord1dFromFloatError::Infinity => "Number is not finite",

@@ -135,7 +135,7 @@ pub fn execute(
     engine_state.merge_delta(working_set.delta)?;
     let res =
         nu_engine::eval_block::<WithoutDebug>(engine_state, stack, &block, PipelineData::Empty)?;
-    Ok(res)
+    Ok(res.body)
 }
 
 #[derive(Error)]

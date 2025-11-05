@@ -24,7 +24,9 @@ pub struct RangeMetadata {
 impl FromValue for Range {
     fn from_value(v: Value) -> Result<Self, ShellError> {
         match v {
-            Value::Range { val, internal_span } => {
+            Value::Range {
+                val, internal_span, ..
+            } => {
                 // TODO: try IntRange here first
                 let range = FloatRange::from(*val);
                 let min = range.start();
