@@ -24,7 +24,7 @@ jobs:
           - name: build
             command: cargo build
           - name: doc
-            command: cargo doc
+            command: cargo doc --no-deps
           - name: test
             command: cargo test
     
