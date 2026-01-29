@@ -137,8 +137,8 @@ pub fn execute(
     match Arc::get_mut(&mut block) {
         None => todo!(),
         Some(block) => {
-            if let Some(last_pipeline) = block.pipelines.last_mut() {
-                if let Some(last_pipeline_element) = last_pipeline.elements.last_mut() {
+            if let Some(last_pipeline) = block.pipelines.last_mut()
+                && let Some(last_pipeline_element) = last_pipeline.elements.last_mut() {
                     last_pipeline_element.redirection = Some(PipelineRedirection::Separate {
                         out: RedirectionTarget::Pipe {
                             span: Span::unknown(),
@@ -148,7 +148,6 @@ pub fn execute(
                         },
                     })
                 }
-            }
         }
     }
 
