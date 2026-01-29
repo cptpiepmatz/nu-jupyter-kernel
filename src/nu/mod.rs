@@ -5,11 +5,13 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
+use miette::{MietteHandlerOpts, NarratableReportHandler, ReportHandler, RgbColors};
+use nu_protocol::ast::{PipelineRedirection, RedirectionTarget};
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{EngineState, Stack, StateDelta, StateWorkingSet};
 use nu_protocol::{
-    CompileError, NU_VARIABLE_ID, ParseError, PipelineData, ShellError, Signals, Span,
-    UseAnsiColoring, Value,
+    CompileError, ErrorStyle, NU_VARIABLE_ID, ParseError, PipelineData, ShellError,
+    ShortReportHandler, Signals, Span, Value,
 };
 use thiserror::Error;
 
@@ -114,7 +116,7 @@ pub fn execute(
 ) -> Result<PipelineData, ExecuteError> {
     let code = code.as_bytes();
     let mut working_set = StateWorkingSet::new(engine_state);
-    let block = nu_parser::parse(&mut working_set, Some(name), code, false);
+    let mut block = nu_parser::parse(&mut working_set, Some(name), code, false);
 
     // TODO: report parse warnings
 
@@ -130,6 +132,24 @@ pub fn execute(
             error,
             delta: working_set.delta,
         });
+    }
+
+    match Arc::get_mut(&mut block) {
+        None => todo!(),
+        Some(block) => {
+            if let Some(last_pipeline) = block.pipelines.last_mut() {
+                if let Some(last_pipeline_element) = last_pipeline.elements.last_mut() {
+                    last_pipeline_element.redirection = Some(PipelineRedirection::Separate {
+                        out: RedirectionTarget::Pipe {
+                            span: Span::unknown(),
+                        },
+                        err: RedirectionTarget::Pipe {
+                            span: Span::unknown(),
+                        },
+                    })
+                }
+            }
+        }
     }
 
     engine_state.merge_delta(working_set.delta)?;
@@ -195,29 +215,37 @@ impl Debug for ReportExecuteError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // This code is stolen from nu_protocol::errors::cli_error::CliError::Debug impl
 
-        let config = self.working_set.get_config();
+        let engine_state = self.working_set.permanent();
+        let config = engine_state.get_config();
 
-        let ansi_support = match config.use_ansi_coloring {
-            // TODO: design a better auto determination
-            UseAnsiColoring::Auto => true,
-            UseAnsiColoring::True => true,
-            UseAnsiColoring::False => false,
-        };
+        let ansi_support = config.use_ansi_coloring.get(engine_state);
 
-        let error_style = &config.error_style;
+        let error_style = config.error_style;
 
-        let miette_handler: Box<dyn miette::ReportHandler> = match error_style {
-            nu_protocol::ErrorStyle::Plain => Box::new(miette::NarratableReportHandler::new()),
-            nu_protocol::ErrorStyle::Fancy => Box::new(
-                miette::MietteHandlerOpts::new()
+        let error_lines = config.error_lines;
+
+        let miette_handler: Box<dyn ReportHandler> = match error_style {
+            ErrorStyle::Short => Box::new(ShortReportHandler::new()),
+            ErrorStyle::Plain => Box::new(NarratableReportHandler::new()),
+            style => {
+                let handler = MietteHandlerOpts::new()
                     // For better support of terminal themes use the ANSI coloring
-                    .rgb_colors(miette::RgbColors::Never)
+                    .rgb_colors(RgbColors::Never)
                     // If ansi support is disabled in the config disable the eye-candy
                     .color(ansi_support)
                     .unicode(ansi_support)
                     .terminal_links(ansi_support)
-                    .build(),
-            ),
+                    .context_lines(error_lines as usize);
+                match style {
+                    ErrorStyle::Nested => Box::new(
+                        handler
+                            .show_related_errors_as_nested()
+                            .with_cause_chain()
+                            .build(),
+                    ),
+                    _ => Box::new(handler.build()),
+                }
+            }
         };
 
         // Ignore error to prevent format! panics. This can happen if span points at
