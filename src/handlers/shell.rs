@@ -137,6 +137,12 @@ impl Cell {
         self.retry_counter = 1;
         current_execution_counter
     }
+
+    /// Get the current execution count, without incrementing it. See also
+    /// [`success`](Self::success).
+    pub fn execution_count(&self) -> usize {
+        self.execution_counter
+    }
 }
 
 async fn handle_kernel_info_request(ctx: &mut HandlerContext, message: &Message<ShellRequest>) {
@@ -241,10 +247,18 @@ async fn handle_execute_error(
         .await
         .unwrap();
 
+    // Special case: execute_reply should always contain execution_count
+    // https://jupyter-client.readthedocs.io/en/stable/messaging.html#request-reply
+    let execution_count = match message.content {
+        ShellRequest::Execute(_) => Some(ctx.cell.execution_count()),
+        _ => None,
+    };
+
     let reply = ShellReply::Error {
         name,
         value,
         traceback,
+        execution_count,
     };
     let reply = Message {
         zmq_identities: message.zmq_identities.clone(),
