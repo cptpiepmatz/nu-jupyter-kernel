@@ -33,6 +33,8 @@ pub enum ShellReply {
         #[serde(rename = "evalue")]
         value: String,
         traceback: Vec<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        execution_count: Option<usize>,
     },
 }
 
