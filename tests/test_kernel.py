@@ -4,8 +4,9 @@ from pathlib import Path
 
 import pytest
 import tomllib
-from jupyter_client import BlockingKernelClient, KernelManager
+from jupyter_client.blocking.client import BlockingKernelClient
 from jupyter_client.kernelspec import KernelSpecManager
+from jupyter_client.manager import KernelManager
 
 
 TIMEOUT = 10
