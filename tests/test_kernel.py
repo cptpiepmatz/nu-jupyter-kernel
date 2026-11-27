@@ -1,19 +1,57 @@
 import json
+import subprocess
+from pathlib import Path
 
 import pytest
 import tomllib
 from jupyter_client import BlockingKernelClient, KernelManager
+from jupyter_client.kernelspec import KernelSpecManager
 
 
 TIMEOUT = 10
 
 
+@pytest.fixture(scope="session")
+def kernel_binary():
+    build = subprocess.run(
+        ["cargo", "build", "--message-format=json"],
+        cwd=Path(__file__).resolve().parents[1],
+        stdout=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
+    for line in build.stdout.splitlines():
+        message = json.loads(line)
+        if (
+            message.get("reason") == "compiler-artifact"
+            and message["target"]["name"] == "nu-jupyter-kernel"
+            and "bin" in message["target"]["kind"]
+            and message.get("executable")
+        ):
+            return message["executable"]
+    pytest.fail("Cargo did not report a nu-jupyter-kernel executable")
+
+
 @pytest.fixture
-def kernel():
-    km = KernelManager(kernel_name="nu")
+def kernel(tmp_path: Path, kernel_binary: str):
+    spec_dir = tmp_path / "nu"
+    spec_dir.mkdir()
+    (spec_dir / "kernel.json").write_text(json.dumps({
+        "argv": [kernel_binary, "start", "{connection_file}"],
+        "display_name": "Nushell",
+        "language": "nushell",
+        "interrupt_mode": "message",
+    }), encoding="utf-8")
+    km = KernelManager(
+        kernel_name="nu",
+        kernel_spec_manager=KernelSpecManager(kernel_dirs=[str(tmp_path)]),
+    )
     km.start_kernel()
-    yield km.client()
-    km.shutdown_kernel()
+    try:
+        yield km.client()
+    finally:
+        km.shutdown_kernel()
 
 
 def ok(client: BlockingKernelClient, code: str) -> list[dict]:

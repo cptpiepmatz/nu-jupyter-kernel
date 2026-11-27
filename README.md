@@ -155,17 +155,16 @@ Since tools for executing Jupyter notebooks are not currently available in Rust,
 the tests are handled via Python.
 
 To run the tests, follow these steps:
-1. **Register the kernel**:
-  ```nushell
-  cargo run register
-  ```
-2. **Sync Python dependencies:**
+1. **Sync Python dependencies:**
   ```nushell
   uv sync
   ```
-3. **Run the tests:**
+2. **Run the tests:**
   ```nushell
   uv run pytest
   ```
 
-Make sure `uv` is installed before running the commands.
+The tests automatically build the kernel with `cargo build --message-format=json`
+and use the resulting executable. No kernel registration is required for testing.
+
+Make sure `uv` and Cargo are installed before running the commands.
