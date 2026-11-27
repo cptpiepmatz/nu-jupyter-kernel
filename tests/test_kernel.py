@@ -49,9 +49,12 @@ def kernel(tmp_path: Path, kernel_binary: str):
         kernel_spec_manager=KernelSpecManager(kernel_dirs=[str(tmp_path)]),
     )
     km.start_kernel()
+    client = km.client()
     try:
-        yield km.client()
+        client.start_channels()
+        yield client
     finally:
+        client.stop_channels()
         km.shutdown_kernel()
 
 
