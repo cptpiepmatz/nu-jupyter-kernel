@@ -113,6 +113,19 @@ def test_basic_rendering(kernel: BlockingKernelClient):
     assert "text/markdown" in data
 
 
+def test_http_get_https(kernel: BlockingKernelClient):
+    contents = ok(kernel, 'http get "https://example.com"')
+    assert len(contents) == 1
+    html = contents[0]["data"]["text/plain"].strip()
+    assert html.lower().startswith("<!doctype html>")
+    assert "<title>Example Domain</title>" in html
+    assert (
+        "This domain is for use in documentation examples without needing permission."
+        in html
+    )
+    assert html.endswith("</body></html>")
+
+
 def test_nuju_content(kernel: BlockingKernelClient):
     contents = ok(kernel, "$nuju")
     assert len(contents) == 1

@@ -139,6 +139,7 @@ async fn start_kernel(connection_file_path: impl AsRef<Path>) {
     let sockets = Sockets::start(&connection_file).await.unwrap();
     DIGESTER.key_init(&connection_file.key).unwrap();
 
+    nu_command::tls::CRYPTO_PROVIDER.default();
     let mut engine_state = nu::initial_engine_state();
     let format_decl_ids = FormatDeclIds::find(&engine_state).unwrap();
     let spans = nu::module::create_nuju_module(&mut engine_state);
