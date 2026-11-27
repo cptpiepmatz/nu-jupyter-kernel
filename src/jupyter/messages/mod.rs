@@ -6,7 +6,7 @@ use bytes::Bytes;
 use chrono::Utc;
 use control::ControlRequest;
 use derive_more::From;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit};
 use nu_protocol::{FromValue, IntoValue};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -232,5 +232,24 @@ impl Message<ControlRequest> {
             content,
             buffers,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use hmac::Mac;
+
+    use super::Digester;
+
+    #[test]
+    fn hmac_sha256_matches_known_signature() {
+        let digester = Digester::new();
+        digester.key_init(b"key").unwrap();
+        let mut mac = digester.get().clone();
+        mac.update(b"The quick brown fox jumps over the lazy dog");
+        assert_eq!(
+            hex::encode(mac.finalize().into_bytes()),
+            "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8"
+        );
     }
 }

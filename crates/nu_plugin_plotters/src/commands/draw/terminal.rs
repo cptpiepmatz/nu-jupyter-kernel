@@ -1,4 +1,4 @@
-use icy_sixel::{DiffusionMethod, MethodForLargest, MethodForRep, PixelFormat, Quality};
+use icy_sixel::SixelImage;
 use image::{DynamicImage, ImageBuffer, RgbImage};
 use nu_engine::command_prelude::*;
 use nu_plugin::{EngineInterface, EvaluatedCall, SimplePluginCommand};
@@ -111,17 +111,11 @@ impl DrawTerminal {
             .unwrap();
         }
         else {
-            let sixel = icy_sixel::sixel_string(
-                &buf,
-                size.0 as i32,
-                size.1 as i32,
-                PixelFormat::RGB888,
-                DiffusionMethod::Stucki,
-                MethodForLargest::Auto,
-                MethodForRep::Auto,
-                Quality::HIGH,
-            )
-            .unwrap();
+            let img: RgbImage = ImageBuffer::from_raw(size.0, size.1, buf).unwrap();
+            let rgba = DynamicImage::ImageRgb8(img).into_rgba8();
+            let sixel = SixelImage::from_rgba(rgba.into_raw(), size.0 as usize, size.1 as usize)
+                .encode()
+                .unwrap();
             println!("{sixel}");
         }
 

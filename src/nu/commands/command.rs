@@ -32,9 +32,10 @@ impl Command for Nuju {
         call: &Call,
         _input: PipelineData,
     ) -> Result<PipelineData, ShellError> {
-        Ok(
-            Value::string(get_full_help(&Nuju, engine_state, stack), call.head)
-                .into_pipeline_data(),
+        Ok(Value::string(
+            get_full_help(&Nuju, engine_state, stack, call.head),
+            call.head,
         )
+        .into_pipeline_data())
     }
 }

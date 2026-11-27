@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use mime_guess::MimeGuess;
 use nu_engine::CallExt;
 use nu_protocol::engine::Command;
+use nu_protocol::shell_error::generic::GenericError;
 use nu_protocol::{FromValue, PipelineData, ShellError, Signature, Span, SyntaxShape, Type, Value};
 
 use super::{COMMANDS_TOML, JupyterCommandContext};
@@ -61,15 +62,13 @@ impl Command for Print {
         let input_span = input.span(); // maybe needed for an error
         let to_render = match (input, arg) {
             // no data provided, throw error
-            (PipelineData::Empty, None) => Err(ShellError::GenericError {
-                error: "No input data".to_string(),
-                msg: "No data was piped or passed as an argument to the command.".to_string(),
-                span: Some(call.span()),
-                help: Some(
-                    "Please provide data through the pipeline or as an argument.".to_string(),
-                ),
-                inner: vec![],
-            }),
+            (PipelineData::Empty, None) => Err(GenericError::new(
+                "No input data",
+                "No data was piped or passed as an argument to the command.",
+                call.span(),
+            )
+            .with_help("Please provide data through the pipeline or as an argument.")
+            .into()),
 
             // passed arg has no data, throw error
             (_, Some(PipelineData::Empty)) => Err(ShellError::TypeMismatch {

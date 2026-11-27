@@ -45,7 +45,7 @@ pub struct KernelInternalRenderSpans {
 pub fn create_nuju_module(engine_state: &mut EngineState) -> KernelInternalSpans {
     let mut working_set = StateWorkingSet::new(engine_state);
 
-    let file_id = working_set.add_file("nuju internals".to_string(), MODULE.as_bytes());
+    let file_id = working_set.add_file("nuju internals", MODULE.as_bytes());
     let file_span = working_set.get_span_for_file(file_id);
 
     let (outer_block, ..) = nu_parser::parse_module_block(&mut working_set, file_span, b"nuju");

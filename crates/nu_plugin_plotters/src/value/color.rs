@@ -1,3 +1,4 @@
+use nu_protocol::shell_error::generic::GenericError;
 use nu_protocol::{FromValue, IntoValue, ShellError, Span, Type, Value};
 use plotters::style::*;
 use serde::{Deserialize, Serialize};
@@ -169,20 +170,18 @@ impl FromValue for ColorChannel {
         #[allow(clippy::match_overlapping_arm)]
         match value {
             U8MIN..=U8MAX => Ok(ColorChannel(value as u8)),
-            i64::MIN..U8MIN => Err(ShellError::GenericError {
-                error: "Integer too small".to_string(),
-                msg: format!("{value} is smaller than {U8MIN}"),
-                span: Some(span),
-                help: None,
-                inner: vec![],
-            }),
-            U8MAX..=i64::MAX => Err(ShellError::GenericError {
-                error: "Integer too large".to_string(),
-                msg: format!("{value} is larger than {U8MAX}"),
-                span: Some(span),
-                help: None,
-                inner: vec![],
-            }),
+            i64::MIN..U8MIN => Err(GenericError::new(
+                "Integer too small",
+                format!("{value} is smaller than {U8MIN}"),
+                span,
+            )
+            .into()),
+            U8MAX..=i64::MAX => Err(GenericError::new(
+                "Integer too large",
+                format!("{value} is larger than {U8MAX}"),
+                span,
+            )
+            .into()),
         }
     }
 
@@ -206,13 +205,12 @@ impl FromValue for AlphaChannel {
         let v = f64::from_value(v)?;
         match v {
             0.0..=1.0 => Ok(Self(v)),
-            _ => Err(ShellError::GenericError {
-                error: "Invalid alpha channel value".to_string(),
-                msg: format!("{v} is not in range between 0.0 and 1.0"),
-                span: Some(span),
-                help: None,
-                inner: vec![],
-            }),
+            _ => Err(GenericError::new(
+                "Invalid alpha channel value",
+                format!("{v} is not in range between 0.0 and 1.0"),
+                span,
+            )
+            .into()),
         }
     }
 

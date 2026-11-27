@@ -82,12 +82,20 @@ fn configure_engine_state(mut engine_state: EngineState) -> EngineState {
     engine_state.is_interactive = false;
     engine_state.is_login = false;
 
+    if let Ok((config_dirs, _)) =
+        nu_config::resolve_paths(&nu_config::SystemEnv, &nu_config::CliOverrides::default())
+    {
+        engine_state.config_dirs = config_dirs;
+    }
+
     // if we cannot access the current dir, we probably also cannot access the
     // subdirectories
     if let Ok(mut config_dir) = env::current_dir() {
         config_dir.push(".nu");
-        engine_state.set_config_path("config-path", config_dir.join("config.nu"));
-        engine_state.set_config_path("env-path", config_dir.join("env.nu"));
+        engine_state.config_dirs.config_file =
+            nu_config::ConfigPath::Override(config_dir.join("config.nu"));
+        engine_state.config_dirs.env_file =
+            nu_config::ConfigPath::Override(config_dir.join("env.nu"));
     }
 
     engine_state.generate_nu_constant();

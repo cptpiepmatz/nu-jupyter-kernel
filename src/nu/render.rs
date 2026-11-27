@@ -6,7 +6,7 @@ use nu_plotters::commands::draw::DrawSvg;
 use nu_protocol::ast::{Argument, Call};
 use nu_protocol::debugger::WithoutDebug;
 use nu_protocol::engine::{Command, EngineState, Stack};
-use nu_protocol::{DeclId, PipelineData, ShellError, Span, Spanned, Value};
+use nu_protocol::{CompareTypes, DeclId, PipelineData, ShellError, Span, Spanned, Value};
 use thiserror::Error;
 
 use super::module::KernelInternalSpans;

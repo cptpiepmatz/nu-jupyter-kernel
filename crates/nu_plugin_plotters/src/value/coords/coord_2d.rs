@@ -1,3 +1,4 @@
+use nu_protocol::shell_error::generic::GenericError;
 use nu_protocol::{FromValue, IntoValue, ShellError, Value};
 use serde::{Deserialize, Serialize};
 
@@ -22,14 +23,12 @@ impl FromValue for Coord2d {
         match (tuple, record) {
             (Ok((x, y)), _) => Ok(Self { x, y }),
             (_, Ok(Coord2dDTO { x, y })) => Ok(Self { x, y }),
-            (Err(tuple_e), Err(record_e)) => Err(ShellError::GenericError {
-                error: "Invalid 2D coordinate.".to_string(),
-                msg: "A 2D coordinate needs to be either pair or a x-y-record of numbers."
-                    .to_string(),
-                span: None,
-                help: None,
-                inner: vec![tuple_e, record_e],
-            }),
+            (Err(tuple_e), Err(record_e)) => Err(GenericError::new_internal(
+                "Invalid 2D coordinate.",
+                "A 2D coordinate needs to be either pair or a x-y-record of numbers.",
+            )
+            .with_inner([tuple_e, record_e])
+            .into()),
         }
     }
 }

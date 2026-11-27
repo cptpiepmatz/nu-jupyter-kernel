@@ -57,7 +57,7 @@ impl Command for BarSeries {
                         ("x".to_string(), Type::Number),
                         ("y".to_string(), Type::Number),
                     ]
-                    .into_boxed_slice(),
+                    .into(),
                 )),
                 Series2d::ty(),
             )

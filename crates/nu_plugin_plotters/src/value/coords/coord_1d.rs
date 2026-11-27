@@ -1,6 +1,7 @@
 use std::cmp;
 use std::ops::{Add, AddAssign, Div, Sub};
 
+use nu_protocol::shell_error::generic::GenericError;
 use nu_protocol::{FromValue, IntoValue, ShellError, Span, Value};
 use serde::{Deserialize, Serialize};
 
@@ -143,13 +144,12 @@ impl FromValue for Coord1d {
                 }
                 .to_string();
 
-                ShellError::GenericError {
+                GenericError::new(
                     error,
-                    msg: "Coordinates need to be a valid number.".to_string(),
-                    span: Some(internal_span),
-                    help: None,
-                    inner: vec![],
-                }
+                    "Coordinates need to be a valid number.",
+                    internal_span,
+                )
+                .into()
             }),
             _ => Err(ShellError::CantConvert {
                 to_type: Self::expected_type().to_string(),
